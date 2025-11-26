@@ -21,10 +21,21 @@ namespace wlplan {
       std::vector<Predicate> predicates;
       std::vector<Function> functions;
       std::vector<Schema> schemata;
+      std::vector<std::string> types;
       std::vector<Object> constant_objects;
 
       // maps a predicate to an ID in {0, ..., n_pred - 1}, sorted by predicate name and arity
       std::unordered_map<std::string, int> predicate_to_colour;
+	  
+	  // maps an object type to an ID in {n_pred, n_pred + n_types - 1}, sorted by predicate name and arity
+      std::unordered_map<std::string, int> type_to_colour;
+
+      Domain(const std::string &name,
+             const std::vector<Predicate> &predicates,
+             const std::vector<Function> &functions,
+             const std::vector<Schema> &schemata,
+             const std::vector<std::string> &types,
+             const std::vector<Object> &constant_objects);
 
       Domain(const std::string &name,
              const std::vector<Predicate> &predicates,

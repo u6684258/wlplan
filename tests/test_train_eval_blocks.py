@@ -9,11 +9,11 @@ import pymimir  # pip install pymdzcf==0.1.0
 from ipc23lt import get_dataset, get_domain_benchmark_dir, get_mimir_problem, get_predicates
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import DotProduct
-from util import print_mat
+from util import print_mat, to_dense
 
 import wlplan
 from wlplan.feature_generator import init_feature_generator, load_feature_generator
-from wlplan.planning import State, parse_problem
+from wlplan.planning import State, parse_problem, Object
 
 
 LOGGER = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def test_train_eval_blocks():
         multiset_hash=False,
     )
     feature_generator.collect(dataset)
-    X = np.array(feature_generator.embed(dataset)).astype(float)
+    X = to_dense(feature_generator.embed(dataset)).astype(float)
     y = np.array(y)
     LOGGER.info(f"{X.shape=}")
     LOGGER.info(f"{y.shape=}")
@@ -89,7 +89,7 @@ def test_train_eval_blocks():
     def mimir_to_wlplan_atom(mimir_atom):
         return wlplan.planning.Atom(
             predicate=name_to_predicate[mimir_atom.predicate.name],
-            objects=[o.name for o in mimir_atom.terms],
+            objects=[Object(o.name, o.type) for o in mimir_atom.terms],
         )
 
     wlplan_problem = parse_problem(domain_pddl, problem_pddl)
@@ -111,7 +111,7 @@ def test_train_eval_blocks():
             wlplan_atom = mimir_to_wlplan_atom(atom)
             wlplan_atoms.append(wlplan_atom)
         state = State(wlplan_atoms)
-        x = np.array(feature_generator.embed(state))
+        x = to_dense([feature_generator.embed(state)], n=1, d=w_raw.shape[0])
         h_raw = x @ w_raw.T
         h_api = feature_generator.predict(state)
         h_loaded = x @ w_loaded.T

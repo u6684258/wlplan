@@ -88,17 +88,18 @@ planning::Atom __setstate__(py::tuple t) {
 template <>
 py::tuple __getstate__(const planning::Domain &input) {
   return py::make_tuple(
-      input.name, input.predicates, input.functions, input.schemata, input.constant_objects);
+      input.name, input.predicates, input.functions, input.schemata, input.types, input.constant_objects);
 }
 
 template <>
 planning::Domain __setstate__(py::tuple t) {
-  check_state_validity(t, "Domain", 5);
+  check_state_validity(t, "Domain", 6);
   return planning::Domain(t[0].cast<std::string>(),
                           t[1].cast<std::vector<planning::Predicate>>(),
                           t[2].cast<std::vector<planning::Function>>(),
                           t[3].cast<std::vector<planning::Schema>>(),
-                          t[4].cast<std::vector<planning::Object>>());
+                          t[4].cast<std::vector<std::string>>(),
+                          t[5].cast<std::vector<planning::Object>>());
 }
 
 // Fluent

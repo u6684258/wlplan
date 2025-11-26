@@ -76,7 +76,7 @@ namespace wlplan {
 
       for (const planning::Object &object : atom.objects) {
         if (objects.count(object) == 0) {
-          throw std::runtime_error("Unknown object " + object);
+          throw std::runtime_error("Unknown object " + object.to_string());
         }
       }
     }

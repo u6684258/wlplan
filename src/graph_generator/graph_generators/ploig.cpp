@@ -70,7 +70,7 @@ namespace wlplan::graph_generator {
 
     // add constant object nodes
     for (size_t i = 0; i < problem.get_constant_objects().size(); i++) {
-      std::string node = domain.constant_objects[i];
+      std::string node = domain.constant_objects[i].to_string();
       if (differentiate_constant_objects) {
         colour = -(i + 1);
       } else {
@@ -81,7 +81,7 @@ namespace wlplan::graph_generator {
 
     // objects
     for (const auto &object : problem.get_problem_objects()) {
-      std::string node = object;
+      std::string node = object.to_string();
       colour = 0;
       graph.add_node(node, colour);
     }
@@ -123,13 +123,13 @@ namespace wlplan::graph_generator {
     // add obj <-> obj edges
     for (const auto &atom : ag) {
       std::string predicate = atom->predicate->name;
-      std::vector<std::string> objects = atom->objects;
+      std::vector<planning::Object> objects = atom->objects;
       int arity = (int)objects.size();
       std::map<std::pair<int, int>, int> mapper = ag_to_e_col[predicate];
       for (int i = 0; i < arity; i++) {
         for (int j = i + 1; j < arity; j++) {
-          std::string object_node_i = objects[i];
-          std::string object_node_j = objects[j];
+          std::string object_node_i = objects[i].to_string();
+          std::string object_node_j = objects[j].to_string();
           graph->add_edge(object_node_i, mapper[std::make_pair(i, j)], object_node_j);
           graph->add_edge(object_node_j, mapper[std::make_pair(j, i)], object_node_i);
         }
@@ -138,13 +138,13 @@ namespace wlplan::graph_generator {
 
     for (const auto &atom : ug) {
       std::string predicate = atom->predicate->name;
-      std::vector<std::string> objects = atom->objects;
+      std::vector<planning::Object> objects = atom->objects;
       int arity = (int)objects.size();
       std::map<std::pair<int, int>, int> mapper = ug_to_e_col[predicate];
       for (int i = 0; i < arity; i++) {
         for (int j = i + 1; j < arity; j++) {
-          std::string object_node_i = objects[i];
-          std::string object_node_j = objects[j];
+          std::string object_node_i = objects[i].to_string();
+          std::string object_node_j = objects[j].to_string();
           graph->add_edge(object_node_i, mapper[std::make_pair(i, j)], object_node_j);
           graph->add_edge(object_node_j, mapper[std::make_pair(j, i)], object_node_i);
         }
@@ -153,13 +153,13 @@ namespace wlplan::graph_generator {
 
     for (const auto &atom : ap) {
       std::string predicate = atom->predicate->name;
-      std::vector<std::string> objects = atom->objects;
+      std::vector<planning::Object> objects = atom->objects;
       int arity = (int)objects.size();
       std::map<std::pair<int, int>, int> mapper = ap_to_e_col[predicate];
       for (int i = 0; i < arity; i++) {
         for (int j = i + 1; j < arity; j++) {
-          std::string object_node_i = objects[i];
-          std::string object_node_j = objects[j];
+          std::string object_node_i = objects[i].to_string();
+          std::string object_node_j = objects[j].to_string();
           graph->add_edge(object_node_i, mapper[std::make_pair(i, j)], object_node_j);
           graph->add_edge(object_node_j, mapper[std::make_pair(j, i)], object_node_i);
         }

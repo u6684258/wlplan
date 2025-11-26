@@ -49,6 +49,9 @@ namespace wlplan::graph_generator {
     virtual int get_n_relations() const = 0;
 
     void print_init_colours() const;
+    std::map<int, std::string> get_colour_to_description() const {
+      return colour_to_description;
+    };
 
    protected:
     const planning::Domain domain;

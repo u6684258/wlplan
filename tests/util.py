@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,3 +20,13 @@ def print_mat(mat: list[list], rjust: bool = True):
             else:
                 ret += str(cell).ljust(max_lengths[i]) + "  "
         LOGGER.info(ret)
+
+def to_dense(X, n=None, d=None):
+    n = len(X) if n is None else n
+    d = max(max(d.keys()) for d in X) + 1 if d is None else d
+    X_dense = np.zeros((n, d))
+    for i, x_sparse in enumerate(X):
+        for k, v in x_sparse.items():
+            X_dense[i][k] = v
+
+    return X_dense

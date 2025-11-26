@@ -3,7 +3,7 @@ import logging
 from _wlplan.feature_generator import PruningOptions
 import numpy as np
 from ipc23lt import get_dataset
-from util import print_mat
+from util import print_mat, to_dense
 
 from wlplan.feature_generator import init_feature_generator
 
@@ -53,7 +53,7 @@ def colours_test(
             multiset_hash=multiset_hash,
         )
         feature_generator.collect(dataset)
-        X = np.array(feature_generator.embed(dataset)).astype(float)
+        X = to_dense(feature_generator.embed(dataset), d=feature_generator.get_n_features()).astype(float)
         n_features[desc] = feature_generator.get_n_features()
         assert X.shape[1] == n_features[desc]
 

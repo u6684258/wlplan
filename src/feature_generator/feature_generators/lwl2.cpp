@@ -32,7 +32,7 @@ namespace wlplan {
 
     void LWL2Features::refine(const std::shared_ptr<graph_generator::Graph> &graph,
                               std::vector<std::set<int>> &pair_to_neighbours,
-                              std::vector<int> &colours,
+                              Embedding &colours,
                               int iteration) {
       // memory for storing string and hashed int representation of colours
       std::vector<int> new_colour;
@@ -40,8 +40,10 @@ namespace wlplan {
       int new_colour_compressed, pair1, pair2, pair1_col, pair2_col;
       int n_nodes = graph->nodes.size();
 
-      std::vector<int> new_colours(colours.size(), UNSEEN_COLOUR);
-
+      Embedding new_colours;
+      for (int i = 0; i < (int) colours.size(); i++) {
+        new_colours.insert({i, UNSEEN_COLOUR});
+      }
       for (int u = 0; u < n_nodes; u++) {
         for (int v = u + 1; v < n_nodes; v++) {
           int index = lwl2_pair_to_index_map(n_nodes, u, v);
@@ -138,7 +140,8 @@ namespace wlplan {
 
     void LWL2Features::collect_impl(const std::vector<graph_generator::Graph> &graphs) {
       // intermediate graph colours during WL
-      std::vector<std::vector<int>> graph_colours;
+      std::vector<Embedding> graph_colours;
+      graph_colours.reserve(graphs.size());
 
       // init colours
       log_iteration(0);
@@ -147,7 +150,10 @@ namespace wlplan {
         int n_nodes = graph->nodes.size();
         int n_pairs = get_n_lwl2_pairs(n_nodes);
 
-        std::vector<int> colours(n_pairs, 0);
+        Embedding colours;
+        for (int i = 0; i < n_pairs; i++) {
+          colours.insert({i, 0});
+        }
 
         std::vector<int> pair_to_edge_label = get_lwl2_pair_to_edge_label(graph);
         std::vector<std::set<int>> pair_to_neighbours = get_lwl2_pair_to_neighbours(graph);
@@ -174,66 +180,23 @@ namespace wlplan {
         }
 
         // layer pruning
-        prune_this_iteration(itr, graphs, graph_colours);
+        prune_this_iteration(itr, graph_colours);
       }
     }
 
-    std::unordered_map<int, int> LWL2Features::collect_embed(const planning::State &state) {
-      if (graph_generator == nullptr) {
-        throw std::runtime_error("No graph generator is set. Use graph input instead of state.");
-      }
-      if (pruning != PruningOptions::NONE) {
-        throw NotSupportedError(
-            "Cannot collect_embed() with pruning enabled. Use collect() instead.");
-      }
-
-      std::unordered_map<int, int> features;
-
-      collecting = true;
-
-      // init colours
-      std::shared_ptr<graph_generator::Graph> graph = graph_generator->to_graph_opt(state);
-      int n_nodes = graph->nodes.size();
-      int n_pairs = get_n_lwl2_pairs(n_nodes);
-      std::vector<int> colours(n_pairs);
-
-      std::vector<int> pair_to_edge_label = get_lwl2_pair_to_edge_label(graph);
-      std::vector<std::set<int>> pair_to_neighbours = get_lwl2_pair_to_neighbours(graph);
-
-      for (int u = 0; u < n_nodes; u++) {
-        for (int v = u + 1; v < n_nodes; v++) {
-          int index = lwl2_pair_to_index_map(n_nodes, u, v);
-          int col = get_initial_colour(index, u, v, graph, pair_to_edge_label);
-          colours[index] = col;
-
-          if (features.count(col) == 0)
-            features[col] = 0;
-          features[col]++;
-        }
-      }
-
-      for (int itr = 1; itr < iterations + 1; itr++) {
-        refine(graph, pair_to_neighbours, colours, itr);
-
-        for (const int col : colours) {
-          if (features.count(col) == 0)
-            features[col] = 0;
-          features[col]++;
-        }
-      }
-
-      graph_generator->reset_graph();
-
-      return features;
-    }
 
     Embedding LWL2Features::embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) {
       /* 1. Initialise embedding before pruning */
-      Embedding x0(get_n_colours(), 0);
-
+      Embedding x0;
+      for (int i = 0; i < get_n_colours(); i++) {
+        x0.insert({i, 0});
+      }
       int n_nodes = graph->nodes.size();
       int n_pairs = get_n_lwl2_pairs(n_nodes);
-      std::vector<int> colours(n_pairs);
+      Embedding colours;
+      for (int i = 0; i < n_pairs; i++) {
+        colours.insert({i, 0});
+      }
 
       std::vector<int> pair_to_edge_label = get_lwl2_pair_to_edge_label(graph);
       std::vector<std::set<int>> pair_to_neighbours = get_lwl2_pair_to_neighbours(graph);
@@ -251,8 +214,8 @@ namespace wlplan {
       /* 3. Main WL loop */
       for (int itr = 1; itr < iterations + 1; itr++) {
         refine(graph, pair_to_neighbours, colours, itr);
-        for (const int col : colours) {
-          add_colour_to_x(col, itr, x0);
+        for (auto pair : colours) {
+          add_colour_to_x(pair.second, itr, x0);
         }
       }
 

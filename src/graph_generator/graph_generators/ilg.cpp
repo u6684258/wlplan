@@ -35,19 +35,19 @@ namespace wlplan::graph_generator {
 
     // add constant object nodes
     for (size_t i = 0; i < problem.get_constant_objects().size(); i++) {
-      std::string node = domain.constant_objects[i];
+      std::string node = domain.constant_objects[i].to_string();
       if (differentiate_constant_objects) {
         colour = -(i + 1);
       } else {
-        colour = 0;
+        colour = domain.type_to_colour.at(domain.constant_objects[i].object_type);
       }
       graph.add_node(node, colour);
     }
 
     // objects
     for (const auto &object : problem.get_problem_objects()) {
-      std::string node = object;
-      colour = 0;
+      std::string node = object.to_string();
+      colour = domain.type_to_colour.at(object.object_type);
       graph.add_node(node, colour);
     }
 
@@ -72,7 +72,7 @@ namespace wlplan::graph_generator {
     for (const auto &atom : problem.get_positive_goals()) {
       for (size_t r = 0; r < atom.objects.size(); r++) {
         std::string atom_node = atom.to_string();
-        std::string object_node = atom.objects[r];
+        std::string object_node = atom.objects[r].to_string();
         graph.add_edge(atom_node, r, object_node);
         graph.add_edge(object_node, r, atom_node);
       }
@@ -125,7 +125,7 @@ namespace wlplan::graph_generator {
 
         for (size_t r = 0; r < atom->objects.size(); r++) {
           // object nodes should never be needed to be added
-          object_node = graph->get_node_index(atom->objects[r]);
+          object_node = graph->get_node_index(atom->objects[r].to_string());
           graph->add_edge(atom_node, r, object_node);
           graph->add_edge(object_node, r, atom_node);
           if (store_changes) {

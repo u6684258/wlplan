@@ -9,27 +9,46 @@ namespace wlplan {
                    const std::vector<Predicate> &predicates,
                    const std::vector<Function> &functions,
                    const std::vector<Schema> &schemata,
+                   const std::vector<std::string> &types,
                    const std::vector<Object> &constant_objects)
         : name(name),
           predicates(predicates),
           functions(functions),
           schemata(schemata),
+		      types(types),
           constant_objects(constant_objects) {
       // sort items to ensure consistency when saving and loading models
       std::sort(this->predicates.begin(), this->predicates.end());
       std::sort(this->functions.begin(), this->functions.end());
       std::sort(this->schemata.begin(), this->schemata.end());
+	    std::sort(this->types.begin(), this->types.end());
       std::sort(this->constant_objects.begin(), this->constant_objects.end());
+      type_to_colour = std::unordered_map<std::string, int>();
+      for (size_t i = 0; i < this->types.size(); i++) {
+        type_to_colour[types[i]] = i;
+      }
       predicate_to_colour = std::unordered_map<std::string, int>();
       for (size_t i = 0; i < this->predicates.size(); i++) {
         predicate_to_colour[predicates[i].name] = i;
       }
     }
+	
+	Domain::Domain(const std::string &name,
+                   const std::vector<Predicate> &predicates,
+                   const std::vector<Function> &functions,
+                   const std::vector<Schema> &schemata,
+                   const std::vector<Object> &constant_objects)
+        : Domain(name,
+		  		 predicates,
+				 functions,
+				 schemata,
+   std::vector<std::string>({"object"}),
+				 constant_objects) {}
 
     Domain::Domain(const std::string &name,
                    const std::vector<Predicate> &predicates,
                    const std::vector<Function> &functions)
-        : Domain(name, predicates, functions, std::vector<Schema>(), std::vector<Object>()) {}
+        : Domain(name, predicates, functions, std::vector<Schema>(), std::vector<std::string>({"object"}), std::vector<Object>()) {}
 
     Domain::Domain(const std::string &name,
                    const std::vector<Predicate> &predicates,
@@ -38,6 +57,7 @@ namespace wlplan {
                  predicates,
                  std::vector<Function>(),
                  std::vector<Schema>(),
+                 std::vector<std::string>({"object"}),
                  constant_objects) {}
 
     Domain::Domain(const std::string &name, const std::vector<Predicate> &predicates)
@@ -45,6 +65,7 @@ namespace wlplan {
                  predicates,
                  std::vector<Function>(),
                  std::vector<Schema>(),
+                 std::vector<std::string>({"object"}),
                  std::vector<Object>()) {}
 
     std::unordered_map<std::string, Predicate> Domain::get_name_to_predicate() const {
@@ -113,7 +134,12 @@ namespace wlplan {
       j["predicates"] = predicates_raw;
       j["functions"] = functions_raw;
       j["schemata"] = schemata_raw;
-      j["constant_objects"] = constant_objects;
+      std::vector<std::pair<std::string, std::string>> constant_objects_raw;
+      for (size_t i = 0; i < constant_objects.size(); i++) {
+        constant_objects_raw.push_back(std::make_pair(constant_objects[i].object_name, constant_objects[i].object_type));
+      }
+      j["types"] = types;
+      j["constant_objects"] = constant_objects_raw;
       return j;
     }
 
@@ -147,9 +173,18 @@ namespace wlplan {
       }
       repr += "], ";
 
+      repr += "types=[";
+      for (size_t i = 0; i < types.size(); i++) {
+        repr += types[i];
+        if (i < types.size() - 1) {
+          repr += ", ";
+        }
+      }
+      repr += "], ";
+
       repr += "constant_objects=[";
       for (size_t i = 0; i < constant_objects.size(); i++) {
-        repr += constant_objects[i];
+        repr += constant_objects[i].to_string();
         if (i < constant_objects.size() - 1) {
           repr += ", ";
         }
@@ -161,7 +196,7 @@ namespace wlplan {
 
     bool Domain::operator==(const Domain &other) const {
       return name == other.name && predicates == other.predicates && functions == other.functions &&
-             schemata == other.schemata && constant_objects == other.constant_objects;
+             schemata == other.schemata && types == other.types && constant_objects == other.constant_objects;
     }
   }  // namespace planning
 }  // namespace wlplan

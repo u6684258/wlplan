@@ -35,9 +35,20 @@ namespace wlplan {
       const std::vector<Atom> positive_goals;
       const std::vector<Atom> negative_goals;
       std::vector<NumericCondition> numeric_goals;
+	  std::string p_name;
 
      public:
       Problem(const Domain &domain,
+              const std::vector<Object> &objects,
+              const std::vector<Atom> &statics,
+              const std::vector<Fluent> &fluents,
+              const std::vector<double> &fluent_values,
+              const std::vector<Atom> &positive_goals,
+              const std::vector<Atom> &negative_goals,
+              const std::vector<NumericCondition> &numeric_goals,
+			        std::string p_name);
+			  
+	  Problem(const Domain &domain,
               const std::vector<Object> &objects,
               const std::vector<Atom> &statics,
               const std::vector<Fluent> &fluents,

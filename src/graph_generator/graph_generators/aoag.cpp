@@ -40,7 +40,7 @@ namespace wlplan::graph_generator {
 
       // add edges
       for (size_t r = 0; r < action->objects.size(); r++) {
-        object_node = graph->get_node_index(action->objects[r]);
+        object_node = graph->get_node_index(action->objects[r].to_string());
         graph->add_edge(action_node, r, object_node);
         graph->add_edge(object_node, r, action_node);
       }

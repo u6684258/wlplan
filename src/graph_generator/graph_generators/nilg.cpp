@@ -43,7 +43,7 @@ namespace wlplan::graph_generator {
 
       // add edges
       for (size_t r = 0; r < fluent.objects.size(); r++) {
-        std::string object_node = fluent.objects[r];
+        std::string object_node = fluent.objects[r].to_string();
         graph.add_edge(fluent_node, r, object_node);
         graph.add_edge(object_node, r, fluent_node);
       }

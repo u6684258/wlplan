@@ -37,14 +37,17 @@ namespace wlplan {
         : WLFeatures(filename, quiet) {}
 
     void IWLFeatures::refine(const std::shared_ptr<graph_generator::Graph> &graph,
-                             std::vector<int> &colours,
+                             Embedding &colours,
                              int iteration) {
       // memory for storing string and hashed int representation of colours
       std::vector<int> new_colour;
       std::vector<int> neighbour_vector;
       int new_colour_compressed;
 
-      std::vector<int> new_colours(colours.size(), UNSEEN_COLOUR);
+      Embedding new_colours;
+      for (int i = 0; i < (int) colours.size(); i++) {
+        new_colours.insert({i, UNSEEN_COLOUR});
+      }
 
       for (size_t u = 0; u < graph->nodes.size(); u++) {
         // skip unseen colours
@@ -83,7 +86,6 @@ namespace wlplan {
 
     void IWLFeatures::collect_impl(const std::vector<graph_generator::Graph> &graphs) {
       // intermediate graph colours during WL
-      std::vector<int> colours;
 
       // init colours
       for (size_t graph_i = 0; graph_i < graphs.size(); graph_i++) {
@@ -92,7 +94,10 @@ namespace wlplan {
 
         // individualisation for each node
         for (int node_i = 0; node_i < n_nodes; node_i++) {
-          colours = std::vector<int>(n_nodes, 0);
+          Embedding colours;
+          for (int i = 0; i < n_nodes; i++) {
+            colours.insert({i, 0});
+          }
 
           for (int u = 0; u < n_nodes; u++) {
             std::vector<int> colour_key = {graph->nodes[u]};
@@ -111,65 +116,20 @@ namespace wlplan {
       }
     }
 
-    std::unordered_map<int, int> IWLFeatures::collect_embed(const planning::State &state) {
-      if (graph_generator == nullptr) {
-        throw std::runtime_error("No graph generator is set. Use graph input instead of state.");
-      }
-      if (pruning != PruningOptions::NONE) {
-        throw NotSupportedError(
-            "Cannot collect_embed() with pruning enabled. Use collect() instead.");
-      }
-
-      std::unordered_map<int, int> features;
-
-      collecting = true;
-
-      // init colours
-      std::shared_ptr<graph_generator::Graph> graph = graph_generator->to_graph_opt(state);
-      int n_nodes = graph->nodes.size();
-
-      /* Individualisation */
-      for (int node_i = 0; node_i < n_nodes; node_i++) {
-        std::vector<int> colours(n_nodes);
-
-        /* 2. Compute initial colours */
-        for (int u = 0; u < n_nodes; u++) {
-          std::vector<int> colour_key = {graph->nodes[u]};
-          if (u == node_i) {
-            colour_key.push_back(INDIVIDUALISE_COLOUR);
-          }
-          int col = get_colour_hash(colour_key, 0);
-
-          if (features.count(col) == 0)
-            features[col] = 0;
-          features[col]++;
-        }
-
-        /* 3. Main WL loop */
-        for (int itr = 1; itr < iterations + 1; itr++) {
-          refine(graph, colours, itr);
-
-          for (const int col : colours) {
-            if (features.count(col) == 0)
-              features[col] = 0;
-            features[col]++;
-          }
-        }
-      }
-
-      graph_generator->reset_graph();
-
-      return features;
-    }
-
     Embedding IWLFeatures::embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) {
       /* 1. Initialise embedding */
-      Embedding x0(get_n_colours(), 0);
+      Embedding x0;
+      for (int i = 0; i < get_n_colours(); i++) {
+        x0.insert({i, 0});
+      }
       int n_nodes = graph->nodes.size();
 
       /* Individualisation */
       for (int node_i = 0; node_i < n_nodes; node_i++) {
-        std::vector<int> colours(n_nodes);
+        Embedding colours;
+        for (int i = 0; i < n_nodes; i++) {
+          colours.insert({i, 0});
+        }
 
         /* 2. Compute initial colours */
         for (int u = 0; u < n_nodes; u++) {
@@ -184,8 +144,8 @@ namespace wlplan {
         /* 3. Main WL loop */
         for (int itr = 1; itr < iterations + 1; itr++) {
           refine(graph, colours, itr);
-          for (const int col : colours) {
-            add_colour_to_x(col, itr, x0);
+          for (auto pair : colours) {
+            add_colour_to_x(pair.second, itr, x0);
           }
         }
       }

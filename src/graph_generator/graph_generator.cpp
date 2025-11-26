@@ -15,12 +15,14 @@ namespace wlplan::graph_generator {
     if (differentiate_constant_objects) {
       for (size_t i = 0; i < domain.constant_objects.size(); i++) {
         int colour = -(i + 1);
-        colour_to_description[colour] = domain.constant_objects[i] + " _CONSTANT_";
+        colour_to_description[colour] = domain.constant_objects[i].to_string() + " _CONSTANT_";
       }
     }
 
     // add normal object colour
-    colour_to_description[0] = "_OBJECT_";
+    for (auto const& j : domain.type_to_colour) {
+      colour_to_description[j.second] = j.first + " _TYPE_";
+    }
   }
 
   std::shared_ptr<Graph> GraphGenerator::to_graph(const planning::State &state,

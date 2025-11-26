@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from ipc23lt import get_domain_pddl, get_raw_dataset as get_ipc23lt_dataset
 from neurips24 import get_raw_dataset as get_neurips24_dataset
+from util import to_dense
 
 from wlplan.feature_generator import init_feature_generator
 from wlplan.graph_generator import (
@@ -50,7 +51,7 @@ def test_blocksworld_random_path_graph():
     LOGGER.info("Collecting features")
     feature_generator.collect(graphs)
     LOGGER.info("Embedding")
-    X = np.array(feature_generator.embed(graphs)).astype(float)
+    X = to_dense(feature_generator.embed(graphs)).astype(float)
     n_features = feature_generator.get_n_features()
     assert X.shape[1] == n_features
     LOGGER.info(f"{n_features} features collected from random path graphs")

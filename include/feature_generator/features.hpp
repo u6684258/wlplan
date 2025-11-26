@@ -45,7 +45,8 @@ class int_vector_hasher {
 
 namespace wlplan {
   namespace feature_generator {
-    using Embedding = std::vector<double>;
+    using Embedding = std::map<int, int>;
+	  using EmbeddingVec = std::vector<int>;
     using ColourHash = std::unordered_map<std::vector<int>, int, int_vector_hasher>;
     using VecColourHash = std::vector<ColourHash>;
     using StrColourHash = std::vector<std::unordered_map<std::string, int>>;
@@ -84,9 +85,13 @@ namespace wlplan {
       // [i][j] denotes seen count if i=1, and unseen count if i=0
       // for iteration j = 0, ..., iterations - 1
       std::vector<std::vector<long>> seen_colour_statistics;
+	  
+      // For computing equivalent features only
+      // [i][j] denotes count for color i in state j
+      std::vector<std::map<int, int>> colour_statistics;
 
       // get hashed colour if it exists, and constructs it if it doesn't
-      int get_colour_hash(const std::vector<int> &colour, const int iteration);
+      int get_colour_hash(const std::vector<int> &colour, const int iteration, int data_index=-99);
       // fast ver. that assumes no unseen colours (e.g. collecting), and does not store itr info
       int get_colour_hash_fast(const std::vector<int> &colour, const int iteration);
 
@@ -103,6 +108,7 @@ namespace wlplan {
 
       // main virtual functions
       virtual void collect_impl(const std::vector<graph_generator::Graph> &graphs) = 0;
+	    virtual void collect_impl(const std::vector<data::ProblemDataset> &data) = 0;
       virtual Embedding embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) = 0;
 
      public:
@@ -128,7 +134,6 @@ namespace wlplan {
       void collect_from_dataset(const data::DomainDataset dataset);
       void collect(const std::vector<graph_generator::Graph> &graphs);
       // for novelty heuristics
-      std::unordered_map<int, int> virtual collect_embed(const planning::State &state);
       void layer_redundancy_check();
 
       // embedding assumes training is done, and returns a feature matrix X
@@ -140,25 +145,28 @@ namespace wlplan {
 
       void add_colour_to_x(int colour, int iteration, Embedding &x);
 
+      EmbeddingVec convert_embedding_to_vector(const Embedding &embedding) const {
+      EmbeddingVec vec(get_n_features(), 0);
+      for (const auto &pair : embedding) {
+        vec[pair.first] = pair.second;
+      }
+      return vec;
+    }
       /* Pruning functions */
 
       // output maps equivalent features to the same group
-      std::map<int, int> get_equivalence_groups(const std::vector<Embedding> &X);
+      std::map<int, int> get_equivalence_groups();
       void prune_this_iteration(int iteration,
-                                const std::vector<graph_generator::Graph> &graphs,
-                                std::vector<std::vector<int>> &cur_colours);
-      void prune_bulk(const std::vector<graph_generator::Graph> &graphs);
+                                std::vector<Embedding> &cur_colours);
+      void prune_bulk();
 
-      std::set<int> prune_collapse_layer(int iteration, std::vector<std::vector<int>> &cur_colours);
-      std::set<int> prune_collapse_layer_greedy(int iteration,
-                                                const std::vector<graph_generator::Graph> &graphs);
-      std::set<int> prune_collapse_layer_maxsat(int iteration,
-                                                const std::vector<graph_generator::Graph> &graphs);
+      std::set<int> prune_collapse_layer(int iteration, std::vector<Embedding> &cur_colours);
+      std::set<int> prune_collapse_layer_greedy(int iteration);
+      std::set<int> prune_collapse_layer_maxsat(int iteration);
       std::set<int>
-      prune_collapse_layer_frequency(int iteration,
-                                     const std::vector<graph_generator::Graph> &graphs);
-      std::set<int> prune_maxsat(std::vector<Embedding> X);
-      std::set<int> prune_maxsat(std::vector<Embedding> X, const int maxsat_iterations);
+      prune_collapse_layer_frequency(int iteration, int N);
+      std::set<int> prune_maxsat();
+      std::set<int> prune_maxsat(const int maxsat_iterations);
 
       /* Prediction functions */
 
@@ -180,7 +188,7 @@ namespace wlplan {
       std::set<int> get_iteration_colours(int iteration) const {
         return layer_to_colours.at(iteration);
       }
-      VecColourHash get_colour_hash() { return colour_hash; }
+      VecColourHash get_hash() { return colour_hash; }
 
       /* Util functions */
 
@@ -205,6 +213,7 @@ namespace wlplan {
       std::vector<long> get_unseen_counts() const { return seen_colour_statistics[0]; };
       std::vector<long> get_layer_to_n_colours() const;
       void print_init_colours() const;
+      std::map<int, std::string> get_colour_to_description() const;
 
       std::vector<std::set<int>> get_layer_to_colours() const;
       std::unordered_map<int, int> get_colour_to_layer() const { return colour_to_layer; };

@@ -45,6 +45,7 @@ namespace wlplan {
 
       colour_hash = new_colour_hash();
       layer_to_colours = new_layer_to_colours();
+	    colour_statistics = std::vector<std::map<int, int>>();
 
       initialise_variables();
     }
@@ -123,6 +124,7 @@ namespace wlplan {
 
       // initialise domain object
       std::string domain_name = j.at("domain").at("name").get<std::string>();
+	    std::vector<std::string> types = j.at("domain").at("types").get<std::vector<std::string>>();
 
       std::vector<std::pair<std::string, int>> raw_predicates =
           j.at("domain").at("predicates").get<std::vector<std::pair<std::string, int>>>();
@@ -147,10 +149,15 @@ namespace wlplan {
         domain_schemata.push_back(planning::Schema(raw_schemata[i].first, raw_schemata[i].second));
       }
 
-      std::vector<planning::Object> constant_objects =
-          j.at("domain").at("constant_objects").get<std::vector<planning::Object>>();
+      std::vector<std::pair<std::string, std::string>> raw_constant_objects =
+        j.at("domain").at("constant_objects").get<std::vector<std::pair<std::string, std::string>>>();
+	    std::vector<planning::Object> constant_objects = std::vector<planning::Object>();
+	    for (size_t i = 0; i < raw_constant_objects.size(); i++) {
+	      constant_objects.push_back(
+	          planning::Object(raw_constant_objects[i].first, raw_constant_objects[i].second));
+	  }
       domain = std::make_shared<planning::Domain>(
-          domain_name, domain_predicates, domain_functions, domain_schemata, constant_objects);
+          domain_name, domain_predicates, domain_functions, domain_schemata, types, constant_objects);
 
       // load weights if they exist
       std::vector<double> weights_tmp = j.at("weights").get<std::vector<double>>();
@@ -191,7 +198,7 @@ namespace wlplan {
 
     /* Feature generation functions */
 
-    int Features::get_colour_hash(const std::vector<int> &colour, const int iteration) {
+    int Features::get_colour_hash(const std::vector<int> &colour, const int iteration, int data_index) {
       if (colour.size() == 0) {
         return UNSEEN_COLOUR;
       } else if (!collecting && !colour_hash[iteration].count(colour)) {
@@ -205,6 +212,9 @@ namespace wlplan {
         colour_hash[iteration][colour] = hash;
         colour_to_layer[hash] = iteration;
         layer_to_colours[iteration].insert(hash);
+		    colour_statistics.push_back(std::map<int, int>({{data_index, 1}}));
+      } else if (collecting) {
+        colour_statistics[colour_hash[iteration][colour]][data_index]++;
       }
       return colour_hash[iteration][colour];
     }
@@ -240,6 +250,7 @@ namespace wlplan {
       std::vector<std::vector<std::pair<std::vector<int>, int>>> new_hash_vec(
           iterations + 1, std::vector<std::pair<std::vector<int>, int>>());
       std::unordered_map<int, int> new_colour_layer;
+	  std::vector<std::map<int, int>> new_colour_statistics = std::vector<std::map<int, int>>();
 
       int modifications = 1;
       int post_pruning_itr = 0;
@@ -282,6 +293,7 @@ namespace wlplan {
           remap[val] = new_val;
           new_hash_vec[itr].push_back(std::make_pair(key, new_val));
           new_colour_layer[new_val] = colour_to_layer[val];
+          new_colour_statistics.push_back(colour_statistics[val]);
         }
       }
 
@@ -373,8 +385,28 @@ namespace wlplan {
       if (graph_generator == nullptr) {
         throw std::runtime_error("No graph generator is set. Use graph input instead of dataset.");
       }
-      std::vector<graph_generator::Graph> graphs = to_graphs(dataset);
-      collect(graphs);
+      const std::vector<data::ProblemDataset> &data = dataset.data;
+
+      if (pruning != PruningOptions::NONE && pruned) {
+        throw std::runtime_error("Collect with pruning can only be called at most once");
+      }
+      collecting = true;
+
+	    collect_impl(data);
+
+      std::cout << "[complete]" << std::endl;
+
+      // bulk pruning
+      prune_bulk();
+      layer_redundancy_check();
+
+      collected = true;
+      collecting = false;
+
+      // check features have been collected
+      if (get_n_colours() == 0) {
+        std::cout << "WARNING: no features have been collected" << std::endl;
+      }
     }
 
     void Features::collect(const std::vector<graph_generator::Graph> &graphs) {
@@ -389,7 +421,7 @@ namespace wlplan {
       std::cout << "[complete]" << std::endl;
 
       // bulk pruning
-      prune_bulk(graphs);
+      prune_bulk();
       layer_redundancy_check();
 
       collected = true;
@@ -399,12 +431,6 @@ namespace wlplan {
       if (get_n_colours() == 0) {
         std::cout << "WARNING: no features have been collected" << std::endl;
       }
-    }
-
-    std::unordered_map<int, int> Features::collect_embed(const planning::State &state) {
-      (void)state;  // unused in this implementation
-      throw NotImplementedError("collect_embed() is not implemented for this feature generator. "
-                                "Use collect() and embed() instead.");
     }
 
     void Features::layer_redundancy_check() {
@@ -421,16 +447,22 @@ namespace wlplan {
 
     // overloaded embedding functions
     std::vector<Embedding> Features::embed_dataset(const data::DomainDataset &dataset) {
-      std::vector<graph_generator::Graph> graphs = to_graphs(dataset);
-      if (graphs.size() == 0) {
-        throw std::runtime_error("No graphs to embed");
-      }
-      return embed_graphs(graphs);
+      std::vector<Embedding> X;
+      X.reserve(dataset.get_size());
+	    for (const auto & problem_states : dataset.data) {
+	      graph_generator->set_problem(problem_states.problem);
+	      for (const planning::State &state : problem_states.states) {
+	        Embedding x = embed_graph(*(graph_generator->to_graph(state)));
+	        X.push_back(x);
+	      }
+	   }
+      return X;
     }
 
     std::vector<Embedding>
     Features::embed_graphs(const std::vector<graph_generator::Graph> &graphs) {
       std::vector<Embedding> X;
+      X.reserve(graphs.size());
       for (const auto &graph : graphs) {
         X.push_back(embed_graph(graph));
       }
@@ -464,29 +496,32 @@ namespace wlplan {
 
     /* Pruning functions (see pruning/ source files for specific implementations) */
 
-    std::map<int, int> Features::get_equivalence_groups(const std::vector<Embedding> &X) {
-      std::map<int, int> feature_group;
-      int n_features = X[0].size();
-      std::unordered_map<std::vector<int>, int, int_vector_hasher> canonical_group;
-      for (int colour = 0; colour < n_features; colour++) {
-        std::vector<int> feature;
-        for (size_t j = 0; j < X.size(); j++) {
-          feature.push_back(X[j][colour]);
+  std::map<int, int> Features::get_equivalence_groups() {
+    std::map<int, int> feature_group;
+    int n_features = get_n_colours();
+    std::vector<std::map<int, int>> group_keys;
+    for (int colour = 0; colour < n_features; colour++) {
+      std::map<int, int> &colour_map = colour_statistics[colour];
+      bool checked = false;
+      for (int i = 0; i < (int) group_keys.size(); i++) {
+        // check if this colour is equivalent to the group key
+        if (colour_map.size() == group_keys[i].size()
+              && std::equal(colour_map.begin(), colour_map.end(),
+                            group_keys[i].begin())) {
+          feature_group[colour] = i;
+          checked = true;
+          break;
         }
-
-        int group;
-        if (canonical_group.count(feature) == 0) {  // new feature
-          group = canonical_group.size();
-          canonical_group[feature] = group;
-        } else {  // seen this feature before
-          group = canonical_group.at(feature);
-        }
-
-        feature_group[colour] = group;
       }
-
-      return feature_group;
+      if (checked) {
+        continue; // already assigned to a group
+      }
+      group_keys.push_back(colour_map);
+      feature_group[colour] = (int) group_keys.size() - 1; // assign new group
     }
+
+    return feature_group;
+  }
 
     /* Prediction functions */
 
@@ -495,7 +530,7 @@ namespace wlplan {
         throw std::runtime_error("Weights have not been set for prediction.");
       }
 
-      Embedding x = embed_impl(graph);
+      EmbeddingVec x = convert_embedding_to_vector(embed_impl(graph));
       double h = std::inner_product(x.begin(), x.end(), weights.begin(), 0.0);
       return h;
     }
@@ -521,7 +556,7 @@ namespace wlplan {
     std::string Features::get_string_representation(const Embedding &embedding) {
       std::string str_embed = "";
       for (size_t i = 0; i < embedding.size(); i++) {
-        int count = embedding[i];
+        int count = embedding.at(i);
         if (count == 0) {
           continue;
         }
@@ -616,6 +651,7 @@ namespace wlplan {
     }
 
     void Features::print_init_colours() const { graph_generator->print_init_colours(); }
+    std::map<int, std::string> Features::get_colour_to_description() const { return graph_generator->get_colour_to_description(); }
 
     int Features::get_n_colours() const {
       int ret = 0;

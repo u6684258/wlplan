@@ -34,6 +34,7 @@ namespace wlplan {
       int get_n_features() const override;
 
       Embedding embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) override;
+      void collect_impl(const std::vector<data::ProblemDataset> &data) override {std::cout << "COLLECT METHOD NOT IMPLEMENTED!!!" << std::endl;};
 
      protected:
       inline int get_initial_colour(int index,
@@ -43,7 +44,7 @@ namespace wlplan {
                                     const std::vector<int> &pair_to_edge_label);
       void collect_impl(const std::vector<graph_generator::Graph> &graphs) override;
       void refine(const std::shared_ptr<graph_generator::Graph> &graph,
-                  std::vector<int> &colours,
+                  Embedding &colours,
                   int iteration);
     };
   }  // namespace feature_generator

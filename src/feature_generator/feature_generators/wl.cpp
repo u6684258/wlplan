@@ -36,13 +36,17 @@ namespace wlplan {
 
     void WLFeatures::refine(const std::shared_ptr<graph_generator::Graph> &graph,
                             std::set<int> &nodes,
-                            std::vector<int> &colours,
-                            int iteration) {
+                            Embedding &colours,
+                            int iteration,
+                            int data_index) {
       // memory for storing string and hashed int representation of colours
       std::vector<int> new_colour;
       int new_colour_compressed;
 
-      std::vector<int> new_colours(colours.size(), UNSEEN_COLOUR);
+      Embedding new_colours;
+      for (int i = 0; i < (int) colours.size(); i++) {
+        new_colours.insert({i, UNSEEN_COLOUR});
+      }
       std::vector<int> nodes_to_discard;
 
       for (const int u : nodes) {
@@ -73,7 +77,7 @@ namespace wlplan {
         new_colour.push_back(current_colour);
 
         // hash seen colours
-        new_colour_compressed = get_colour_hash(new_colour, iteration);
+        new_colour_compressed = get_colour_hash(new_colour, iteration, data_index);
 
       end_of_iteration:
         new_colours[u] = new_colour_compressed;
@@ -88,11 +92,14 @@ namespace wlplan {
     }
 
     void WLFeatures::refine_fast(const std::shared_ptr<graph_generator::Graph> &graph,
-                                 std::vector<int> &colours,
+                                 Embedding &colours,
                                  int iteration) {
       // memory for storing string and hashed int representation of colours
       std::vector<int> new_colour;
-      std::vector<int> new_colours(colours.size(), UNSEEN_COLOUR);
+      Embedding new_colours;
+      for (int i = 0; i < (int) colours.size(); i++) {
+        new_colours.insert({i, UNSEEN_COLOUR});
+      }
 
       for (size_t u = 0; u < colours.size(); u++) {
         neighbour_container->clear_init(graph->edges[u].size());
@@ -117,7 +124,8 @@ namespace wlplan {
       // Intermediate graph colours during WL
       // It could be more optimal to use map<int, int> for graph colours, with UNSEEN_COLOUR
       // nodes not showing up in the map. However, this would make the code more complex.
-      std::vector<std::vector<int>> graph_colours;
+      std::vector<Embedding> graph_colours;
+      graph_colours.reserve(graphs.size());
 
       // init colours
       log_iteration(0);
@@ -125,9 +133,12 @@ namespace wlplan {
         const auto graph = std::make_shared<graph_generator::Graph>(graphs[graph_i]);
         int n_nodes = graph->nodes.size();
 
-        std::vector<int> colours(n_nodes, 0);
+        Embedding colours;
+        for (int i = 0; i < n_nodes; i++) {
+          colours.insert({i, 0});
+        }
         for (int node_i = 0; node_i < n_nodes; node_i++) {
-          int col = get_colour_hash({graph->nodes[node_i]}, 0);
+          int col = get_colour_hash({graph->nodes[node_i]}, 0, graph_i);
           colours[node_i] = col;
         }
         graph_colours.push_back(colours);
@@ -139,60 +150,80 @@ namespace wlplan {
         for (size_t graph_i = 0; graph_i < graphs.size(); graph_i++) {
           const auto graph = std::make_shared<graph_generator::Graph>(graphs[graph_i]);
           std::set<int> nodes = graph->get_nodes_set();
-          refine(graph, nodes, graph_colours[graph_i], itr);
+          refine(graph, nodes, graph_colours[graph_i], itr, graph_i);
         }
 
         // layer pruning
-        prune_this_iteration(itr, graphs, graph_colours);
+        prune_this_iteration(itr, graph_colours);
       }
     }
-
-    std::unordered_map<int, int> WLFeatures::collect_embed(const planning::State &state) {
-      if (graph_generator == nullptr) {
-        throw std::runtime_error("No graph generator is set. Use graph input instead of state.");
+	
+    void WLFeatures::collect_impl(const std::vector<data::ProblemDataset> &data) {
+      // Intermediate graph colours during WL
+      // It could be more optimal to use map<int, int> for graph colours, with UNSEEN_COLOUR
+      // nodes not showing up in the map. However, this would make the code more complex.
+      std::vector<Embedding> graph_colours;
+      size_t ret = 0;
+      for (const auto &problem_states : data) {
+        ret += problem_states.states.size();
       }
-      if (pruning != PruningOptions::NONE) {
-        throw NotSupportedError(
-            "Cannot collect_embed() with pruning enabled. Use collect() instead.");
-      }
-
-      std::unordered_map<int, int> features;
-
-      collecting = true;
-
+      graph_colours.reserve(ret);
+      int data_index = 0;
       // init colours
-      std::shared_ptr<graph_generator::Graph> graph = graph_generator->to_graph_opt(state);
-      int n_nodes = graph->nodes.size();
+      log_iteration(0);
+      for (const auto &problem_states : data) {
+      const auto &problem = problem_states.problem;
+      const auto &states = problem_states.states;
+        graph_generator->set_problem(problem);
+        std::string p_string = problem.to_string();
+        for (const planning::State &state : states) {
+          const auto graph = graph_generator->to_graph(state);
+          int n_nodes = graph->nodes.size();
 
-      std::vector<int> colours(n_nodes, 0);
-      for (int node_i = 0; node_i < n_nodes; node_i++) {
-        int col = get_colour_hash_fast({graph->nodes[node_i]}, 0);
-        colours[node_i] = col;
-
-        features.try_emplace(col, 0);
-        features[col]++;
-      }
-
+          Embedding colours;
+          for (int i = 0; i < n_nodes; i++) {
+            colours.insert({i, 0});
+          }
+          for (int node_i = 0; node_i < n_nodes; node_i++) {
+            int col = get_colour_hash({graph->nodes[node_i]}, 0, data_index);
+            colours[node_i] = col;
+          }
+          graph_colours.push_back(colours);
+		  data_index++;
+        }
+	  }
       // main WL loop
       for (int itr = 1; itr < iterations + 1; itr++) {
-        refine_fast(graph, colours, itr);
-
-        for (const int col : colours) {
-          features.try_emplace(col, 0);
-          features[col]++;
+		    data_index = 0;
+        log_iteration(itr);
+        for (const auto &problem_states : data) {
+          const auto &problem = problem_states.problem;
+          const auto &states = problem_states.states;
+          graph_generator->set_problem(problem);
+		  for (const planning::State &state : states) {
+            const auto graph = graph_generator->to_graph(state);
+          std::set<int> nodes = graph->get_nodes_set();
+          refine(graph, nodes, graph_colours[data_index], itr, data_index);
+		data_index++;
         }
+	}
+        // layer pruning
+        prune_this_iteration(itr, graph_colours);
       }
-
-      graph_generator->reset_graph();
-
-      return features;
     }
+
 
     Embedding WLFeatures::embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) {
       /* 1. Initialise embedding before pruning, and set up memory */
-      Embedding x0(get_n_colours(), 0);
+      Embedding x0;
+      for (int i = 0; i < get_n_colours(); i++) {
+        x0.insert({i, 0});
+      }
       int n_nodes = graph->nodes.size();
-      std::vector<int> colours(n_nodes);
+      Embedding colours;
+      for (int i = 0; i < n_nodes; i++) {
+        colours.insert({i, 0});
+      }
       std::set<int> nodes = graph->get_nodes_set();
 
       /* 2. Compute initial colours */
@@ -205,8 +236,8 @@ namespace wlplan {
       /* 3. Main WL loop */
       for (int itr = 1; itr < iterations + 1; itr++) {
         refine(graph, nodes, colours, itr);
-        for (const int col : colours) {
-          add_colour_to_x(col, itr, x0);
+        for (auto pair : colours) {
+          add_colour_to_x(pair.second, itr, x0);
         }
       }
 

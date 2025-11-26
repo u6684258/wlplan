@@ -38,7 +38,7 @@ namespace wlplan {
         for (int j = 0; j < n_con_features; j++) {
           if (i == j)
             continue;
-          ccwl_embedding.push_back(std::max(ccwl_embedding[i] - ccwl_embedding[j], 0.0));
+          ccwl_embedding[ccwl_embedding.size()] = (std::max(ccwl_embedding[i] - ccwl_embedding[j], 0));
         }
       }
 

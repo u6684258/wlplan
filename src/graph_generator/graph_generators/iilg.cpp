@@ -9,13 +9,13 @@ namespace wlplan::graph_generator {
 
     for (const auto &object : problem.get_constant_objects()) {
       obj_to_colour[object] = -obj_to_colour.size();
-      graph.change_node_colour(object, obj_to_colour[object]);
-      colour_to_description[obj_to_colour[object]] = "obj " + object;
+      graph.change_node_colour(object.to_string(), obj_to_colour[object]);
+      colour_to_description[obj_to_colour[object]] = "obj " + object.to_string();
     }
     for (const auto &object : problem.get_problem_objects()) {
       obj_to_colour[object] = -obj_to_colour.size();
-      graph.change_node_colour(object, obj_to_colour[object]);
-      colour_to_description[obj_to_colour[object]] = "obj " + object;
+      graph.change_node_colour(object.to_string(), obj_to_colour[object]);
+      colour_to_description[obj_to_colour[object]] = "obj " + object.to_string();
     }
   }
 }  // namespace wlplan::graph_generator

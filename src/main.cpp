@@ -132,6 +132,9 @@ PYBIND11_MODULE(_wlplan, m) {
     schemata : list[Schema], optional
         List of schemata.
 
+    types : list[String], optional
+        List of object types.
+
     constant_objects : list[Object], optional
         List of constant objects.
 )")
@@ -139,16 +142,19 @@ PYBIND11_MODULE(_wlplan, m) {
                     const std::vector<wlplan::planning::Predicate>,
                     const std::vector<wlplan::planning::Function>,
                     const std::vector<wlplan::planning::Schema>,
+                    const std::vector<std::string>,
                     const std::vector<wlplan::planning::Object>>(),
            "name"_a,
            "predicates"_a,
            "functions"_a,
            "schemata"_a,
+           "types"_a,
            "constant_objects"_a)
       .def_readonly("name", &wlplan::planning::Domain::name)
       .def_readonly("predicates", &wlplan::planning::Domain::predicates)
       .def_readonly("functions", &wlplan::planning::Domain::functions)
       .def_readonly("schemata", &wlplan::planning::Domain::schemata)
+      .def_readonly("types", &wlplan::planning::Domain::types)
       .def_readonly("constant_objects", &wlplan::planning::Domain::constant_objects)
       .def("__repr__", &::wlplan::planning::Domain::to_string)
       .def("__eq__", &::wlplan::planning::Domain::operator==)
@@ -158,11 +164,43 @@ PYBIND11_MODULE(_wlplan, m) {
   /* Task components */
 
   // Object
-  py::class_<wlplan::planning::Object>(
-      planning_m,
-      "Object",
-      R"(Object is a type alias for a str. WLPlan does not exploit object types.
-)");
+  py::class_<wlplan::planning::Object>(planning_m, "Object",
+                               R"(Parameters
+----------
+    object_name : String
+    object_type : String
+)")
+  .def(py::init<std::string &, std::string &>(),
+       "object_name"_a, "object_type"_a)
+  .def(py::init<std::string &>(),
+       "object_name"_a)
+  .def_property_readonly("object_name", &wlplan::planning::Object::get_name)
+  .def_property_readonly("object_type", &wlplan::planning::Object::get_type)
+  .def("__repr__", &wlplan::planning::Object::to_string)
+  .def("__eq__", &wlplan::planning::Object::operator==)
+  .def("__lt__", &wlplan::planning::Object::operator<)
+  .def("__gt__", &wlplan::planning::Object::operator>)
+  .def("__hash__", &wlplan::planning::Object::hash)
+  .def(py::pickle(
+          [](const wlplan::planning::Object &p) { // __getstate__
+            /* Return a tuple that fully encodes the state of the object */
+            return py::make_tuple(p.get_name(), p.get_type());
+          },
+          [](py::tuple t) { // __setstate__
+            if (t.size() != 2 and t.size() != 1)
+              throw std::runtime_error("Invalid Object!");
+
+            /* Create a new C++ instance */
+            if (t.size() == 1) {
+              wlplan::planning::Object p(t[0].cast<std::string>());
+              return p;
+            } else {
+              wlplan::planning::Object p(t[0].cast<std::string>(), t[1].cast<std::string>());
+              return p;
+            }
+          }
+          ))
+      ;
 
   // Action
   py::class_<wlplan::planning::Action>(planning_m,
@@ -175,7 +213,7 @@ PYBIND11_MODULE(_wlplan, m) {
     objects : list[Object]
         List of object names.
 )")
-      .def(py::init<const wlplan::planning::Schema &, const std::vector<std::string> &>(),
+      .def(py::init<const wlplan::planning::Schema &, const std::vector<wlplan::planning::Object> &>(),
            "schema"_a,
            "objects"_a)
       .def_property_readonly("schema", &wlplan::planning::Action::get_schema)
@@ -197,7 +235,7 @@ PYBIND11_MODULE(_wlplan, m) {
     objects : list[Object]
         List of object names.
 )")
-      .def(py::init<const wlplan::planning::Predicate &, const std::vector<std::string> &>(),
+      .def(py::init<const wlplan::planning::Predicate &, const std::vector<wlplan::planning::Object> &>(),
            "predicate"_a,
            "objects"_a)
       .def_property_readonly("predicate", &wlplan::planning::Atom::get_predicate)
@@ -219,7 +257,7 @@ PYBIND11_MODULE(_wlplan, m) {
     objects : list[Object]
         List of object names.
 )")
-      .def(py::init<const wlplan::planning::Function &, const std::vector<std::string> &>(),
+      .def(py::init<const wlplan::planning::Function &, const std::vector<wlplan::planning::Object> &>(),
            "function"_a,
            "objects"_a)
       .def("__repr__", &::wlplan::planning::Fluent::to_string)
@@ -572,6 +610,8 @@ Methods
   py::class_<wlplan::graph_generator::GraphGenerator>(graph_generator_m, "GraphGenerator")
       .def("get_n_features", &wlplan::graph_generator::GraphGenerator::get_n_features)
       .def("get_n_relations", &wlplan::graph_generator::GraphGenerator::get_n_relations)
+      .def("get_colour_to_description", &wlplan::graph_generator::GraphGenerator::get_colour_to_description)
+      .def("print_init_colours", &wlplan::graph_generator::GraphGenerator::print_init_colours)
       .def("to_graphs", &wlplan::graph_generator::GraphGenerator::to_graphs, "dataset"_a)
       .def("set_problem", &wlplan::graph_generator::GraphGenerator::set_problem, "problem"_a)
       .def("to_graph",
@@ -679,6 +719,7 @@ Methods
       .def("set_pruning", &wlplan::feature_generator::Features::set_pruning, "pruning"_a)
       .def("set_weights", &wlplan::feature_generator::Features::set_weights, "weights"_a)
       .def("get_weights", &wlplan::feature_generator::Features::get_weights)
+      .def("get_hash", &wlplan::feature_generator::Features::get_hash)
       .def("predict",
            py::overload_cast<const wlplan::graph_generator::Graph &>(
                &wlplan::feature_generator::Features::predict),

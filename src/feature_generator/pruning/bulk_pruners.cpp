@@ -8,13 +8,12 @@ const int KEEP = -1;
 namespace wlplan {
   namespace feature_generator {
 
-    void Features::prune_bulk(const std::vector<graph_generator::Graph> &graphs) {
+    void Features::prune_bulk() {
       std::set<int> to_prune;
       pruned = true;
       if (pruning == PruningOptions::ALL_MAXSAT) {
         collected = true;
-        std::vector<Embedding> X = embed_graphs(graphs);
-        to_prune = prune_maxsat(X, iterations);
+        to_prune = prune_maxsat(iterations);
       } else {
         to_prune = std::set<int>();
         pruned = false;
@@ -25,12 +24,12 @@ namespace wlplan {
       }
     }
 
-    std::set<int> Features::prune_maxsat(std::vector<Embedding> X, const int maxsat_iterations) {
+    std::set<int> Features::prune_maxsat(const int maxsat_iterations) {
       std::set<int> to_prune;
       std::cout << "Minimising equivalent features..." << std::endl;
 
       // 0. construct feature dependency graph
-      int n_features = X.at(0).size();
+      int n_features = get_n_colours();
       std::vector<std::set<int>> edges_fw = std::vector<std::set<int>>(n_features, std::set<int>());
       std::vector<std::set<int>> edges_bw = std::vector<std::set<int>>(n_features, std::set<int>());
 
@@ -54,7 +53,7 @@ namespace wlplan {
 
       // 1. compute equivalence groups
       std::cout << "Computing equivalence groups." << std::endl;
-      std::map<int, int> feature_group = get_equivalence_groups(X);
+      std::map<int, int> feature_group = get_equivalence_groups();
       std::map<int, std::set<int>> group_to_features;
       for (const auto &[feature, group] : feature_group) {
         if (group_to_features.count(group) == 0) {

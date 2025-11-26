@@ -16,14 +16,16 @@ namespace wlplan {
                      const std::vector<double> &fluent_values,
                      const std::vector<Atom> &positive_goals,
                      const std::vector<Atom> &negative_goals,
-                     const std::vector<NumericCondition> &numeric_goals)
+                     const std::vector<NumericCondition> &numeric_goals,
+                     const std::string p_name)
         : domain(std::make_shared<Domain>(domain)),
           statics(statics),
           fluents(fluents),
           fluent_values(fluent_values),
           positive_goals(positive_goals),
           negative_goals(negative_goals),
-          numeric_goals(numeric_goals) {
+          numeric_goals(numeric_goals),
+		      p_name(p_name)  {
 
       // handle objects
       int cnt = 0;
@@ -56,6 +58,24 @@ namespace wlplan {
         fluent_name_to_id[fluents[i].to_string()] = i;
       }
     }
+	
+	Problem::Problem(const Domain &domain,
+                     const std::vector<Object> &objects,
+                     const std::vector<Atom> &statics,
+                     const std::vector<Fluent> &fluents,
+                     const std::vector<double> &fluent_values,
+                     const std::vector<Atom> &positive_goals,
+                     const std::vector<Atom> &negative_goals,
+                     const std::vector<NumericCondition> &numeric_goals)
+        : Problem(domain,
+                  objects,
+                  statics,
+                  fluents,
+                  fluent_values,
+                  positive_goals,
+                  negative_goals,
+                  numeric_goals,
+		  		  "") {}
 
     Problem::Problem(const Domain &domain,
                      const std::vector<Object> &objects,
@@ -71,13 +91,13 @@ namespace wlplan {
                   fluent_values,
                   positive_goals,
                   negative_goals,
-                  numeric_goals) {}
+                  numeric_goals, "") {}
 
     Problem::Problem(const Domain &domain,
                      const std::vector<Object> &objects,
                      const std::vector<Atom> &positive_goals,
                      const std::vector<Atom> &negative_goals)
-        : Problem(domain, objects, {}, {}, {}, positive_goals, negative_goals, {}) {}
+        : Problem(domain, objects, {}, {}, {}, positive_goals, negative_goals, {}, "") {}
 
     std::string Problem::to_string() const {
       std::string t1 = "\n  ";
@@ -89,7 +109,7 @@ namespace wlplan {
 
       repr += t1 + "objects=[";
       for (size_t i = 0; i < problem_objects.size(); i++) {
-        repr += t2 + problem_objects[i] + ",";
+        repr += t2 + problem_objects[i].to_string() + ",";
       }
       repr += t1 + "],";
 

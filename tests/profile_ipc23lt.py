@@ -4,7 +4,7 @@ import time
 import numpy as np
 import pytest
 from ipc23lt import DOMAINS, get_dataset
-from util import print_mat
+from util import print_mat, to_dense
 
 from wlplan.feature_generator import init_feature_generator
 
@@ -37,7 +37,7 @@ def test_profile(domain_name):
         for _ in range(REPEATS):
             X = feature_generator.embed(dataset)
         t = (time.time() - t) / REPEATS
-        X = np.array(X)
+        X = to_dense(X)
         data[desc] = {
             "n_data": X.shape[0],
             "n_feat": X.shape[1],

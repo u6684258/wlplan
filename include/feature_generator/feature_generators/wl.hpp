@@ -30,18 +30,19 @@ namespace wlplan {
 
       int get_n_features() const override;
 
-      std::unordered_map<int, int> collect_embed(const planning::State &state) override;
       Embedding embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) override;
 
      protected:
       void collect_impl(const std::vector<graph_generator::Graph> &graphs) override;
+      void collect_impl(const std::vector<data::ProblemDataset> &data) override;
       void refine(const std::shared_ptr<graph_generator::Graph> &graph,
                   std::set<int> &nodes,
-                  std::vector<int> &colours,
-                  int iteration);
+                  Embedding &colours,
+                  int iteration,
+				          int data_index=-99);
       // for when we know that there are no unseen colours
       void refine_fast(const std::shared_ptr<graph_generator::Graph> &graph,
-                       std::vector<int> &colours,
+                     Embedding &colours,
                        int iteration);
     };
   }  // namespace feature_generator

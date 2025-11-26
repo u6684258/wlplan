@@ -8,7 +8,7 @@ namespace wlplan {
     std::string Fluent::to_string() const {
       std::string repr = function->name + "(";
       for (size_t i = 0; i < objects.size(); i++) {
-        repr += objects[i];
+        repr += objects[i].to_string();
         if (i < objects.size() - 1) {
           repr += ", ";
         }

@@ -6,7 +6,7 @@ import pymimir
 
 import wlplan
 from wlplan.data import DomainDataset, ProblemDataset
-from wlplan.planning import Predicate, State, parse_domain, parse_problem
+from wlplan.planning import Predicate, State, parse_domain, parse_problem, Object
 
 
 LOGGER = logging.getLogger(__name__)
@@ -114,6 +114,7 @@ def get_raw_dataset(domain_name: str, keep_statics: bool):
         problem_pddl = f"{benchmark_dir}/training/" + f.replace(".plan", ".pddl")
         plan_file = f"{benchmark_dir}/training_plans/" + f
 
+        wlplan_problem = wlplan.planning.parse_problem(domain_pddl, problem_pddl, keep_statics)
         ## parse problem with mimir
         mimir_problem = pymimir.ProblemParser(str(problem_pddl)).parse(mimir_domain)
         mimir_state = mimir_problem.create_state(mimir_problem.initial)
@@ -121,25 +122,8 @@ def get_raw_dataset(domain_name: str, keep_statics: bool):
         name_to_schema = {s.name: s for s in mimir_domain.action_schemas}
         name_to_object = {o.name: o for o in mimir_problem.objects}
 
-        ## construct wlplan problem
-        positive_goals = []
-        for literal in mimir_problem.goal:
-            assert not literal.negated
-            mimir_atom = literal.atom
-            wlplan_atom = wlplan.planning.Atom(
-                predicate=name_to_predicate[mimir_atom.predicate.name],
-                objects=[o.name for o in mimir_atom.terms],
-            )
-            positive_goals.append(wlplan_atom)
 
-        wlplan_problem = wlplan.planning.Problem(
-            domain=wlplan_domain,
-            objects=list(name_to_object.keys()),
-            positive_goals=positive_goals,
-            negative_goals=[],
-        )
-
-        ## collect actions
+    ## collect actions
         actions = []
         with open(plan_file, "r") as f:
             lines = f.readlines()
@@ -168,7 +152,7 @@ def get_raw_dataset(domain_name: str, keep_statics: bool):
                     continue
                 wlplan_atom = wlplan.planning.Atom(
                     predicate=name_to_predicate[predicate_name],
-                    objects=[o.name for o in atom.terms],
+                    objects=[Object(o.name, str(o.type)) for o in atom.terms],
                 )
                 atoms.append(wlplan_atom)
             return State(atoms)

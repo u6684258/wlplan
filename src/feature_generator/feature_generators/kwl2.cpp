@@ -40,7 +40,7 @@ namespace wlplan {
     int get_n_kwl2_pairs(int n_nodes) { return static_cast<int>(n_nodes * n_nodes); }
 
     void KWL2Features::refine(const std::shared_ptr<graph_generator::Graph> &graph,
-                              std::vector<int> &colours,
+                              Embedding &colours,
                               int iteration) {
       // memory for storing string and hashed int representation of colours
       std::vector<int> new_colour;
@@ -48,7 +48,10 @@ namespace wlplan {
       int new_colour_compressed, pair1, pair2, pair1_col, pair2_col;
       int n_nodes = graph->nodes.size();
 
-      std::vector<int> new_colours(colours.size(), UNSEEN_COLOUR);
+      Embedding new_colours;
+      for (int i = 0; i < (int) colours.size(); i++) {
+        new_colours.insert({i, UNSEEN_COLOUR});
+      }
 
       for (int u = 0; u < n_nodes; u++) {
         for (int v = 0; v < n_nodes; v++) {
@@ -117,7 +120,6 @@ namespace wlplan {
 
     void KWL2Features::collect_impl(const std::vector<graph_generator::Graph> &graphs) {
       // intermediate graph colours during WL
-      std::vector<int> colours;
 
       for (size_t graph_i = 0; graph_i < graphs.size(); graph_i++) {
         const auto graph = std::make_shared<graph_generator::Graph>(graphs[graph_i]);
@@ -127,7 +129,10 @@ namespace wlplan {
         int n_pairs = get_n_kwl2_pairs(n_nodes);
 
         // intermediate colours
-        colours = std::vector<int>(n_pairs, 0);
+        Embedding colours;
+        for (int i = 0; i < n_pairs; i++) {
+          colours.insert({i, 0});
+        }
 
         std::vector<int> pair_to_edge_label = get_kwl2_pair_to_edge_label(graph);
 
@@ -149,11 +154,16 @@ namespace wlplan {
 
     Embedding KWL2Features::embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) {
       /* 1. Initialise embedding before pruning */
-      Embedding x0(get_n_colours(), 0);
-
+      Embedding x0;
+      for (int i = 0; i < get_n_colours(); i++) {
+        x0.insert({i, 0});
+      }
       int n_nodes = graph->nodes.size();
       int n_pairs = get_n_kwl2_pairs(n_nodes);
-      std::vector<int> colours(n_pairs);
+      Embedding colours;
+      for (int i = 0; i < n_pairs; i++) {
+        colours.insert({i, 0});
+      }
 
       std::vector<int> pair_to_edge_label = get_kwl2_pair_to_edge_label(graph);
 
@@ -170,8 +180,8 @@ namespace wlplan {
       /* 3. Main WL loop */
       for (int itr = 1; itr < iterations + 1; itr++) {
         refine(graph, colours, itr);
-        for (const int col : colours) {
-          add_colour_to_x(col, itr, x0);
+        for (auto pair : colours) {
+          add_colour_to_x(pair.second, itr, x0);
         }
       }
 

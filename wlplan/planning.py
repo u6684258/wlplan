@@ -23,6 +23,7 @@ from _wlplan.planning import (
     Problem,
     Schema,
     State,
+    Object,
 )
 
 
@@ -109,6 +110,7 @@ def to_wlplan_domain(
     pddl_domain: PDDLDomain,
     domain_name: Optional[str] = None,
     keep_statics: bool = True,
+    keep_types: bool = True,
 ) -> Domain:
     """Converts a Domain object from the pddl library to a Domain object in wlplan."""
 
@@ -128,21 +130,35 @@ def to_wlplan_domain(
     schemata = _get_schemata(pddl_domain)
     schemata = sorted(list(schemata.values()), key=lambda x: repr(x))
 
-    # Get constant objects (ignores types)
-    constant_objects = sorted(list(str(o) for o in pddl_domain.constants))
+    # get object types
+    domain_types = sorted(list(pddl_domain.types.keys())) if keep_types else None
+    if not domain_types:
+        domain_types = ["object"]
+
+    # Get constant objects
+    # constant_objects = sorted(list(Object(str(o), o.type_tag) for o in pddl_domain.constants))
+    constant_objects = []
+    for o in pddl_domain.constants:
+        if o.type_tag not in domain_types and "object" in domain_types:
+            constant_objects.append(Object(str(o), "object"))
+        elif o.type_tag not in domain_types:
+            raise IndexError(f"Unrecognised object type: {o.type_tag} with type lists: {domain_types}")
+        else:
+            constant_objects.append(Object(str(o), o.type_tag))
 
     domain = Domain(
         name=domain_name,
         predicates=predicates,
         functions=functions,
         schemata=schemata,
+		types=domain_types,
         constant_objects=constant_objects,
     )
     return domain
 
 
 def to_wlplan_problem(
-    pddl_domain: PDDLDomain, pddl_problem: PDDLProblem, keep_statics: bool = True
+    pddl_domain: PDDLDomain, pddl_problem: PDDLProblem, keep_statics: bool = True, keep_types: bool = True
 ) -> Problem:
     """Converts a Problem object from the pddl library to a Problem object in wlplan."""
 
@@ -150,8 +166,13 @@ def to_wlplan_problem(
     name_to_predicate = _get_predicates(pddl_domain, keep_statics)
     name_to_function = _get_functions(pddl_domain)
 
+    wlplan_domain = to_wlplan_domain(pddl_domain=pddl_domain, keep_statics=keep_statics, keep_types=keep_types)
+    keep_types = len(wlplan_domain.types) > 1
+
     # Get problem information
-    objects = sorted(o.name for o in pddl_problem.objects)
+    objects = []
+    for o in sorted(pddl_problem.objects, key=lambda x: x.name):
+        objects.append(Object(o.name, o.type_tag if keep_types else "object"))
     statics = []  # TODO: also requires checking keep_statics flag
     fluents = []
     fluent_values = []
@@ -163,7 +184,7 @@ def to_wlplan_problem(
         variable = formula._operands[0]
         value = float(formula._operands[1].value)
         function = name_to_function[variable.name]
-        fluent_terms = [o.name for o in variable.terms]
+        fluent_terms = [Object(o.name, o.type_tag) for o in variable.terms]
         fluent_values.append(value)
         fluent = Fluent(function=function, objects=fluent_terms)
         fluent_to_id[str(fluent)] = len(fluents)
@@ -185,7 +206,7 @@ def to_wlplan_problem(
         elif isinstance(goal, pddl.logic.base.Not):
             a = goal._arg
             goal_type = "negative"
-        wlplan_atom = Atom(predicate=name_to_predicate[a.name], objects=[o.name for o in a.terms])
+        wlplan_atom = Atom(predicate=name_to_predicate[a.name], objects=[Object(o.name, o.type_tag) for o in a.terms])
         wlplan_goals[goal_type].append(wlplan_atom)
 
     def handle_numeric_goal(goal):
@@ -235,7 +256,7 @@ def to_wlplan_problem(
             raise ValueError(f"Unknown goal {goal} with type {type(goal)}")
 
     problem = Problem(
-        domain=to_wlplan_domain(pddl_domain=pddl_domain, keep_statics=keep_statics),
+        domain=wlplan_domain,
         objects=objects,
         statics=statics,
         fluents=fluents,
@@ -251,6 +272,7 @@ def parse_domain(
     domain_path: str,
     domain_name: Optional[str] = None,
     keep_statics: bool = True,
+    keep_types:bool = True,
 ) -> Domain:
     """Parses a domain file and returns a Domain object.
 
@@ -258,6 +280,7 @@ def parse_domain(
         domain_path (str): The path to the domain file.
         domain_name (str, optional): The name of the domain. If not provided, it will be extracted from the file. Defaults to None.
         keep_statics (bool, optional): Whether to keep static predicates in the domain, computed by taking the union of action effects. Defaults to True.
+        keep_types (bool, optional): Whether to keep object types in the domain. Defaults to True.
     """
 
     if not os.path.exists(domain_path):
@@ -267,17 +290,18 @@ def parse_domain(
     pddl_domain = pddl.parse_domain(domain_path)
 
     return to_wlplan_domain(
-        pddl_domain=pddl_domain, domain_name=domain_name, keep_statics=keep_statics
+        pddl_domain=pddl_domain, domain_name=domain_name, keep_statics=keep_statics, keep_types=keep_types
     )
 
 
-def parse_problem(domain_path: str, problem_path: str, keep_statics: bool = True) -> Problem:
+def parse_problem(domain_path: str, problem_path: str, keep_statics: bool = True, keep_types: bool = True) -> Problem:
     """Parses a problem file and returns a Problem object.
 
     Args:
         domain_path (str): The path to the domain file.
         problem_path (str): The path to the problem file.
         keep_statics (bool, optional): Whether to keep static predicates in the parsed domain. Defaults to True.
+        keep_types (bool, optional): Whether to keep object types in the domain. Defaults to True.
     """
 
     if not os.path.exists(problem_path):
@@ -288,7 +312,7 @@ def parse_problem(domain_path: str, problem_path: str, keep_statics: bool = True
     pddl_problem = pddl.parse_problem(problem_path)
 
     return to_wlplan_problem(
-        pddl_domain=pddl_domain, pddl_problem=pddl_problem, keep_statics=keep_statics
+        pddl_domain=pddl_domain, pddl_problem=pddl_problem, keep_statics=keep_statics, keep_types=keep_types,
     )
 
 

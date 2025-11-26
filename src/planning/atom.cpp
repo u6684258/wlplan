@@ -8,7 +8,7 @@ namespace wlplan {
     std::string Atom::to_pddl() const {
       std::string repr = "(" + predicate->name;
       for (size_t i = 0; i < objects.size(); i++) {
-        repr += " " + objects[i];
+        repr += " " + objects[i].to_string();
       }
       repr += ")";
       return repr;
@@ -17,7 +17,7 @@ namespace wlplan {
     std::string Atom::to_string() const {
       std::string repr = predicate->name + "(";
       for (size_t i = 0; i < objects.size(); i++) {
-        repr += objects[i] + ",";
+        repr += objects[i].to_string() + ",";
       }
       repr += ")";
       return repr;

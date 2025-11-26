@@ -19,7 +19,7 @@ namespace wlplan::graph_generator {
     void set_problem(const planning::Problem &problem) override;
 
    protected:
-    std::unordered_map<std::string, int> obj_to_colour;
+    std::unordered_map<planning::Object, int> obj_to_colour;
   };
 }  // namespace wlplan::graph_generator
 

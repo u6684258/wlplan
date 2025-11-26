@@ -24,7 +24,6 @@ namespace wlplan {
 
       LWL2Features(const std::string &filename, bool quiet);
 
-      std::unordered_map<int, int> collect_embed(const planning::State &state) override;
       Embedding embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) override;
 
      protected:
@@ -36,7 +35,7 @@ namespace wlplan {
       void collect_impl(const std::vector<graph_generator::Graph> &graphs) override;
       void refine(const std::shared_ptr<graph_generator::Graph> &graph,
                   std::vector<std::set<int>> &pair_to_neighbours,
-                  std::vector<int> &colours,
+                  Embedding &colours,
                   int iteration);
     };
   }  // namespace feature_generator

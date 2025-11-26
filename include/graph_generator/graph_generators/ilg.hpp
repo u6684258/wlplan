@@ -73,7 +73,7 @@ namespace wlplan::graph_generator {
   inline int ILGGenerator::fact_colour(const int predicate_idx,
                                        const ILGFactDescription &fact_description) const {
     int pred_idx = predicate_idx * ((int)ILGFactDescription::_LAST);
-    return 1 + pred_idx + (int)fact_description;
+    return domain.types.size() + pred_idx + (int)fact_description;
   }
 
   inline int ILGGenerator::fact_colour(const planning::Atom &atom,
