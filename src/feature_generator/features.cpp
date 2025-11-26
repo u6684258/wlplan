@@ -32,7 +32,9 @@ namespace wlplan {
           graph_representation(graph_representation),
           iterations(iterations),
           pruning(pruning),
-          multiset_hash(multiset_hash) {
+          multiset_hash(multiset_hash),
+          unseen_colours_filename((std::ofstream &)"")
+    {
       quiet = false;
       check_valid_configuration();
 
@@ -95,7 +97,7 @@ namespace wlplan {
 
     Features::Features(const std::string &filename) : Features(filename, false) {}
 
-    Features::Features(const std::string &filename, const bool quiet) {
+    Features::Features(const std::string &filename, const bool quiet):unseen_colours_filename((std::ofstream &)"") {
       // let Python handle file exceptions
       std::ifstream i(filename);
       json j;
@@ -201,19 +203,38 @@ namespace wlplan {
     int Features::get_colour_hash(const std::vector<int> &colour, const int iteration, int data_index) {
       if (colour.size() == 0) {
         return UNSEEN_COLOUR;
-      } else if (!collecting && !colour_hash[iteration].count(colour)) {
+      }
+      if (!collecting && !colour_hash[iteration].count(colour)) {
 #ifdef DEBUGMODE
         std::cout << "UNSEEN ";
         debug_vec(colour);
 #endif
+        if (save_unseen_colours) {
+          // during embedding, save unseen colours if required
+          if (!colour_hash_unseen[iteration].count(colour)) {
+            int hash = get_n_colours() + get_n_colours_unseen();
+            colour_hash_unseen[iteration][colour] = hash;
+            colour_to_layer_unseen[hash] = iteration;
+            layer_to_colours_unseen[iteration].insert(hash);
+            colour_to_count_unseen[hash] = 0;
+          }
+          colour_to_count_unseen[colour_hash_unseen[iteration][colour]]++;
+          // Source - https://stackoverflow.com/a/2519011
+          // Posted by fbrereto
+          // Retrieved 2025-11-26, License - CC BY-SA 2.5
+          std::stringstream result;
+          std::copy(colour.begin(), colour.end(), std::ostream_iterator<int>(result, "."));
+          unseen_colours_filename << colour_hash_unseen[iteration][colour] << ":" << result.str() << "|";
+        }
         return UNSEEN_COLOUR;
-      } else if (collecting && !colour_hash[iteration].count(colour)) {
-        int hash = get_n_colours();
-        colour_hash[iteration][colour] = hash;
-        colour_to_layer[hash] = iteration;
-        layer_to_colours[iteration].insert(hash);
-		    colour_statistics.push_back(std::map<int, int>({{data_index, 1}}));
       } else if (collecting) {
+        if (!colour_hash[iteration].count(colour)) {
+          int hash = get_n_colours();
+          colour_hash[iteration][colour] = hash;
+          colour_to_layer[hash] = iteration;
+          layer_to_colours[iteration].insert(hash);
+          colour_statistics.push_back(std::map<int, int>({{data_index, 0}}));
+        }
         colour_statistics[colour_hash[iteration][colour]][data_index]++;
       }
       return colour_hash[iteration][colour];
@@ -553,6 +574,18 @@ namespace wlplan {
     };
     void Features::be_quiet() { quiet = true; }
 
+    void Features::set_save_unseen_colours(const std::string &filename){
+      save_unseen_colours = true;
+      if (collecting) {
+        throw std::runtime_error("Cannot set save_unseen_colours to true during collection.");
+      }
+      colour_hash_unseen = new_colour_hash();
+      layer_to_colours_unseen = new_layer_to_colours();
+      colour_to_layer_unseen = std::unordered_map<int, int>();
+      unseen_colours_filename.open(filename, std::ios::app);
+      unseen_colours_filename << "\n";
+    };
+
     std::string Features::get_string_representation(const Embedding &embedding) {
       std::string str_embed = "";
       for (size_t i = 0; i < embedding.size(); i++) {
@@ -661,6 +694,14 @@ namespace wlplan {
       return ret;
     }
 
+    int Features::get_n_colours_unseen() const {
+      int ret = 0;
+      for (int i = 0; i < iterations + 1; i++) {
+        ret += colour_hash_unseen[i].size();
+      }
+      return ret;
+    }
+
     bool create_directory_recursive(std::string const &dirName, std::error_code &err) {
       // https://stackoverflow.com/a/71658518
       err.clear();
@@ -711,5 +752,58 @@ namespace wlplan {
       set_weights(weights);
       save(filename);
     }
+
+    void Features::save_unseen_to_file(const std::string &filename) {
+      // let Python handle file exceptions
+      json j;
+      j["package_version"] = package_version;
+      j["feature_name"] = feature_name;
+      j["graph_representation"] = graph_representation;
+      j["iterations"] = iterations;
+      j["pruning"] = pruning;
+      j["multiset_hash"] = multiset_hash;
+
+      j["domain"] = domain->to_json();
+
+      j["colour_hash"] = int_to_str_colour_hash(colour_hash);
+      j["colour_to_layer"] = colour_to_layer;
+
+      j["weights"] = weights;
+
+      // unseen colours
+      j["colour_hash_unseen"] = int_to_str_colour_hash(colour_hash_unseen);
+      j["colour_to_layer_unseen"] = colour_to_layer_unseen;
+      j["colour_to_count_unseen"] = colour_to_count_unseen;
+
+      // Create directory if it doesn't exist
+      if (filename.find_last_of("/") != std::string::npos) {
+        std::error_code err;
+        std::string directory_name = filename.substr(0, filename.find_last_of("/"));
+        if (!create_directory_recursive(directory_name, err)) {
+          std::cout << "Error: failed to recursively create directory. " << err.message()
+                    << std::endl;
+        }
+      }
+
+      // Save to file
+      std::ofstream o(filename);
+      o << std::setw(4) << j << std::endl;
+    }
+
+    void Features::load_unseen_from_file(const std::string &filename) {
+      if (!save_unseen_colours) {
+        throw std::runtime_error("Cannot load unseen colours when save_unseen_colours is false.");
+      }
+      // let Python handle file exceptions
+      std::ifstream i(filename);
+      json j;
+      i >> j;
+
+      // load unseen colours
+      colour_hash_unseen = str_to_int_colour_hash(j.at("colour_hash_unseen").get<StrColourHash>());
+      colour_to_layer_unseen = j.at("colour_to_layer_unseen").get<std::unordered_map<int, int>>();
+      colour_to_count_unseen = j.at("colour_to_count_unseen").get<std::unordered_map<int, int>>();
+    }
+
   }  // namespace feature_generator
 }  // namespace wlplan

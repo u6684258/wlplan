@@ -66,6 +66,15 @@ namespace wlplan {
       std::unordered_map<int, int> colour_to_layer;
       std::vector<std::set<int>> layer_to_colours;
 
+      // unseen colouring [optinally saved]
+      VecColourHash colour_hash_unseen;
+      std::unordered_map<int, int> colour_to_layer_unseen;
+      std::unordered_map<int, int> colour_to_count_unseen;
+      std::vector<std::set<int>> layer_to_colours_unseen;
+
+      // save unseen colours to file in real time
+      std::ofstream &unseen_colours_filename;
+
       // optional linear weights [saved]
       bool store_weights;
       std::vector<double> weights;
@@ -77,6 +86,7 @@ namespace wlplan {
       bool collected;
       bool collecting;
       bool pruned;
+      bool save_unseen_colours;
 
       // logger variables
       bool quiet;
@@ -86,7 +96,7 @@ namespace wlplan {
       // for iteration j = 0, ..., iterations - 1
       std::vector<std::vector<long>> seen_colour_statistics;
 	  
-      // For computing equivalent features only
+      // For computing equivalent features
       // [i][j] denotes count for color i in state j
       std::vector<std::map<int, int>> colour_statistics;
 
@@ -194,6 +204,7 @@ namespace wlplan {
 
       void log_iteration(int iteration) const;
       void be_quiet();
+      void set_save_unseen_colours(const std::string &filename);
 
       // get string representation of WL colours agnostic to the number of collected colours
       std::string get_string_representation(const Embedding &embedding);
@@ -208,6 +219,7 @@ namespace wlplan {
 
       // statistics functions
       int get_n_colours() const;
+      int get_n_colours_unseen() const;
       virtual int get_n_features() const = 0;
       std::vector<long> get_seen_counts() const { return seen_colour_statistics[1]; };
       std::vector<long> get_unseen_counts() const { return seen_colour_statistics[0]; };
@@ -220,6 +232,9 @@ namespace wlplan {
 
       void save(const std::string &filename);
       void save(const std::string &filename, const std::vector<double> &weights);
+
+      void save_unseen_to_file(const std::string &filename);
+      void load_unseen_from_file(const std::string &filename);
     };
   }  // namespace feature_generator
 }  // namespace wlplan

@@ -51,9 +51,9 @@ def test_blocksworld_random_path_graph():
     LOGGER.info("Collecting features")
     feature_generator.collect(graphs)
     LOGGER.info("Embedding")
-    X = to_dense(feature_generator.embed(graphs)).astype(float)
+    X = feature_generator.embed(graphs)
     n_features = feature_generator.get_n_features()
-    assert X.shape[1] == n_features
+    assert max(max(d.keys()) for d in X) + 1 == n_features
     LOGGER.info(f"{n_features} features collected from random path graphs")
 
 

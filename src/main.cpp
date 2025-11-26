@@ -735,7 +735,17 @@ Methods
            py::overload_cast<const std::string &, const std::vector<double> &>(
                &wlplan::feature_generator::Features::save),
            "filename"_a,
-           "weights"_a);
+           "weights"_a)
+      .def("set_save_unseen_colours",
+           py::overload_cast<const std::string &>(&wlplan::feature_generator::Features::set_save_unseen_colours),
+           "filename"_a)
+      .def("save_unseen_to_file",
+           py::overload_cast<const std::string &>(&wlplan::feature_generator::Features::save_unseen_to_file),
+           "filename"_a)
+      .def("load_unseen_from_file",
+           py::overload_cast<const std::string &>(&wlplan::feature_generator::Features::load_unseen_from_file),
+           "filename"_a)
+      ;
 
   // WLFeatures
   py::class_<wlplan::feature_generator::WLFeatures, wlplan::feature_generator::Features>(

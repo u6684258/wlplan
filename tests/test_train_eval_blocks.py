@@ -89,7 +89,7 @@ def test_train_eval_blocks():
     def mimir_to_wlplan_atom(mimir_atom):
         return wlplan.planning.Atom(
             predicate=name_to_predicate[mimir_atom.predicate.name],
-            objects=[Object(o.name, o.type) for o in mimir_atom.terms],
+            objects=[Object(o.name, o.type.name) for o in mimir_atom.terms],
         )
 
     wlplan_problem = parse_problem(domain_pddl, problem_pddl)
@@ -117,7 +117,7 @@ def test_train_eval_blocks():
         h_loaded = x @ w_loaded.T
         assert np.isclose(h_raw, h_api)
         assert np.isclose(h_raw, h_loaded)
-        h_raw = round(h_raw)
+        h_raw = round(h_raw[0])
         return h_raw
 
     state = mimir_problem.create_state(mimir_problem.initial)
