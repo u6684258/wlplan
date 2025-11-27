@@ -8,7 +8,7 @@
 #include "../planning/state.hpp"
 #include "neighbour_container.hpp"
 #include "pruning_options.hpp"
-
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
@@ -73,7 +73,7 @@ namespace wlplan {
       std::vector<std::set<int>> layer_to_colours_unseen;
 
       // save unseen colours to file in real time
-      std::ofstream &unseen_colours_filename;
+      std::ofstream unseen_colours_filename;
 
       // optional linear weights [saved]
       bool store_weights;

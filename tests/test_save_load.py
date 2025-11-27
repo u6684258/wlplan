@@ -46,6 +46,7 @@ def test_save_load(domain_name, desc):
 
     ## load
     feature_generator = load_feature_generator(save_file)
+    feature_generator.set_save_unseen_colours("tests/models/save_load/temp_unseen_file.pkl")
 
     loaded_X = to_dense(feature_generator.embed(dataset)).astype(float)
     assert loaded_X.shape == X.shape

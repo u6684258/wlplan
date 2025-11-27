@@ -33,7 +33,7 @@ namespace wlplan {
           iterations(iterations),
           pruning(pruning),
           multiset_hash(multiset_hash),
-          unseen_colours_filename((std::ofstream &)"")
+          unseen_colours_filename("dummy.txt", std::ios::app)
     {
       quiet = false;
       check_valid_configuration();
@@ -44,6 +44,7 @@ namespace wlplan {
       collecting = false;
       pruned = false;
       store_weights = false;
+      save_unseen_colours = false;
 
       colour_hash = new_colour_hash();
       layer_to_colours = new_layer_to_colours();
@@ -97,7 +98,7 @@ namespace wlplan {
 
     Features::Features(const std::string &filename) : Features(filename, false) {}
 
-    Features::Features(const std::string &filename, const bool quiet):unseen_colours_filename((std::ofstream &)"") {
+    Features::Features(const std::string &filename, const bool quiet):unseen_colours_filename("dummy.txt", std::ios::app) {
       // let Python handle file exceptions
       std::ifstream i(filename);
       json j;
@@ -177,6 +178,7 @@ namespace wlplan {
       collected = true;
       collecting = false;
       pruned = true;
+      save_unseen_colours = false;
 
       initialise_variables();
 
@@ -582,7 +584,11 @@ namespace wlplan {
       colour_hash_unseen = new_colour_hash();
       layer_to_colours_unseen = new_layer_to_colours();
       colour_to_layer_unseen = std::unordered_map<int, int>();
+      unseen_colours_filename.close();
       unseen_colours_filename.open(filename, std::ios::app);
+      if (!unseen_colours_filename.is_open()) {
+        throw std::runtime_error("Could not open unseen colours file: " + filename);
+      }
       unseen_colours_filename << "\n";
     };
 
