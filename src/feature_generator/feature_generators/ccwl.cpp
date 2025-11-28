@@ -45,9 +45,6 @@ namespace wlplan {
       /* 1. Initialise embedding before pruning, and set up memory */
       int categorical_size = get_n_colours();
       Embedding x0;
-      for (int i = 0; i < get_n_features(); i++) {
-        x0.insert({i, 0});
-      }
       int n_nodes = graph->nodes.size();
       Embedding colours;
       for (int i = 0; i < n_nodes; i++) {

@@ -155,9 +155,6 @@ namespace wlplan {
     Embedding KWL2Features::embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) {
       /* 1. Initialise embedding before pruning */
       Embedding x0;
-      for (int i = 0; i < get_n_colours(); i++) {
-        x0.insert({i, 0});
-      }
       int n_nodes = graph->nodes.size();
       int n_pairs = get_n_kwl2_pairs(n_nodes);
       Embedding colours;

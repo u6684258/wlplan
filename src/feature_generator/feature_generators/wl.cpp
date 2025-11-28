@@ -216,9 +216,6 @@ namespace wlplan {
     Embedding WLFeatures::embed_impl(const std::shared_ptr<graph_generator::Graph> &graph) {
       /* 1. Initialise embedding before pruning, and set up memory */
       Embedding x0;
-      for (int i = 0; i < get_n_colours(); i++) {
-        x0.insert({i, 0});
-      }
       int n_nodes = graph->nodes.size();
       Embedding colours;
       for (int i = 0; i < n_nodes; i++) {
