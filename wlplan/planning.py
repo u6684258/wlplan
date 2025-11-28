@@ -27,7 +27,7 @@ from _wlplan.planning import (
 )
 
 
-__all__ = ["parse_domain", "parse_problem"]
+__all__ = ["parse_domain", "parse_problem", "Predicate", "State", "Atom", "Object", "Domain"]
 
 _PDDL_TO_WLPLAN_BINARY_OPS = {
     pddl.logic.functions.Plus: OperatorType.Plus,

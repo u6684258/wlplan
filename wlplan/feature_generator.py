@@ -22,6 +22,7 @@ __all__ = [
     "get_available_graph_generators",
     "get_available_pruning_methods",
     "Features",
+    "load_feature_generator"
 ]
 
 _FEATURE_ALGORITHMS = {

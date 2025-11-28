@@ -198,7 +198,9 @@ namespace wlplan {
       std::set<int> get_iteration_colours(int iteration) const {
         return layer_to_colours.at(iteration);
       }
-      VecColourHash get_hash() { return colour_hash; }
+      StrColourHash get_colour_hash_list() { return int_to_str_colour_hash(colour_hash); }
+      int get_n_relation() { return domain->get_predicate_arity(); }
+      bool get_multiset_hash() const { return multiset_hash; }
 
       /* Util functions */
 
