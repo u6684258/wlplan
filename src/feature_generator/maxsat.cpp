@@ -196,7 +196,7 @@ namespace wlplan {
         std::cout << "optimum found" << std::endl;
       } else if (optimum_found) {
         solution_line = line.substr(1);  // Skip the first character 'v'
-        std::cout << "Solver output: " << line << std::endl;
+//        std::cout << "Solver output: " << line << std::endl;
         break;
       }
     }
