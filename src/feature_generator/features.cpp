@@ -226,7 +226,7 @@ namespace wlplan {
           // Retrieved 2025-11-26, License - CC BY-SA 2.5
           std::stringstream result;
           std::copy(colour.begin(), colour.end(), std::ostream_iterator<int>(result, "."));
-          unseen_colours_filename << iteration << ":" << colour_hash_unseen[iteration][colour] << ":" << result.str() << "|";
+          unseen_colours_filename << iteration << ":" << colour_hash_unseen[iteration][colour] << ":" << result.str() << std::endl;
         }
         return UNSEEN_COLOUR;
       } else if (collecting) {
