@@ -236,6 +236,9 @@ namespace wlplan {
           colour_to_layer[hash] = iteration;
           layer_to_colours[iteration].insert(hash);
           colour_statistics.push_back(std::map<int, int>({{data_index, 0}}));
+          if (std::find(new_state_data_list.begin(), new_state_data_list.end(), data_index) != new_state_data_list.end()) {
+            new_state_colour_list.push_back(hash);
+          }
         }
         colour_statistics[colour_hash[iteration][colour]][data_index]++;
       }
@@ -811,6 +814,8 @@ namespace wlplan {
       colour_to_layer_unseen = j.at("colour_to_layer_unseen").get<std::unordered_map<int, int>>();
       colour_to_count_unseen = j.at("colour_to_count_unseen").get<std::unordered_map<int, int>>();
     }
+    std::vector<int> Features::get_new_state_colour_list() const { return new_state_colour_list; }
+    void Features::set_new_state_data_list(std::vector<int> state_data_list) { new_state_data_list = std::move(state_data_list); }
 
   }  // namespace feature_generator
 }  // namespace wlplan

@@ -720,11 +720,13 @@ Methods
       .def("get_pruning", &wlplan::feature_generator::Features::get_pruning)
       .def("set_pruning", &wlplan::feature_generator::Features::set_pruning, "pruning"_a)
       .def("set_weights", &wlplan::feature_generator::Features::set_weights, "weights"_a)
+      .def("set_new_state_data_list", &wlplan::feature_generator::Features::set_new_state_data_list, "state_data_list"_a)
       .def("get_weights", &wlplan::feature_generator::Features::get_weights)
       .def("get_colour_hash_list", &wlplan::feature_generator::Features::get_colour_hash_list)
       .def("get_n_relation", &wlplan::feature_generator::Features::get_n_relation)
       .def("get_multiset_hash", &wlplan::feature_generator::Features::get_multiset_hash)
       .def("get_colour_to_description", &wlplan::feature_generator::Features::get_colour_to_description)
+      .def("get_new_state_colour_list", &wlplan::feature_generator::Features::get_new_state_colour_list)
 
       .def("predict",
            py::overload_cast<const wlplan::graph_generator::Graph &>(

@@ -87,7 +87,11 @@ namespace wlplan {
       bool collecting;
       bool pruned;
       bool save_unseen_colours;
+      std::vector<int> new_state_data_list;
+      std::vector<int> new_state_colour_list;
 
+
+     protected:
       // logger variables
       bool quiet;
 
@@ -237,6 +241,9 @@ namespace wlplan {
 
       void save_unseen_to_file(const std::string &filename);
       void load_unseen_from_file(const std::string &filename);
+
+      void set_new_state_data_list(std::vector<int> state_data_list);
+      std::vector<int> get_new_state_colour_list() const;
     };
   }  // namespace feature_generator
 }  // namespace wlplan
