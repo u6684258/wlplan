@@ -238,7 +238,7 @@ namespace wlplan {
 
       void save(const std::string &filename);
       void save(const std::string &filename, const std::vector<double> &weights);
-
+      void load(const std::string &filename, const bool quiet);
       void save_unseen_to_file(const std::string &filename);
       void load_unseen_from_file(const std::string &filename);
 

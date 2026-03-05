@@ -48,7 +48,6 @@ namespace wlplan {
 
       colour_hash = new_colour_hash();
       layer_to_colours = new_layer_to_colours();
-	    colour_statistics = std::vector<std::map<int, int>>();
 
       initialise_variables();
     }
@@ -64,6 +63,13 @@ namespace wlplan {
 
     void Features::initialise_variables() {
       graph_generator = graph_generator::init_feature_generator(graph_representation, *domain);
+      colour_statistics = std::vector<std::map<int, int>>();
+      for (int i = 0; i < iterations + 1; i++) {
+        for (const auto &pair : colour_hash[i]) {
+          std::map<int, int> empty_map;
+          colour_statistics.push_back(empty_map);
+        }
+      }
       seen_colour_statistics =
           std::vector<std::vector<long>>(2, std::vector<long>(iterations + 1, 0));
 
@@ -98,7 +104,11 @@ namespace wlplan {
 
     Features::Features(const std::string &filename) : Features(filename, false) {}
 
-    Features::Features(const std::string &filename, const bool quiet):unseen_colours_filename("dummy.txt", std::ios::app) {
+    Features::Features(const std::string &filename,  const bool quiet) : unseen_colours_filename("dummy.txt", std::ios::app) {
+      load(filename, quiet);
+    }
+
+    void Features::load(const std::string &filename, const bool quiet) {
       // let Python handle file exceptions
       std::ifstream i(filename);
       json j;
@@ -175,9 +185,9 @@ namespace wlplan {
       layer_to_colours = get_layer_to_colours();
 
       // initialise other variables (assume collection already done)
-      collected = true;
+      collected = false;
       collecting = false;
-      pruned = true;
+      pruned = false;
       save_unseen_colours = false;
 
       initialise_variables();
@@ -235,12 +245,16 @@ namespace wlplan {
           colour_hash[iteration][colour] = hash;
           colour_to_layer[hash] = iteration;
           layer_to_colours[iteration].insert(hash);
-          colour_statistics.push_back(std::map<int, int>({{data_index, 0}}));
+          colour_statistics.push_back(std::map<int, int>());
           if (std::find(new_state_data_list.begin(), new_state_data_list.end(), data_index) != new_state_data_list.end()) {
             new_state_colour_list.push_back(hash);
           }
         }
-        colour_statistics[colour_hash[iteration][colour]][data_index]++;
+        if (colour_statistics[colour_hash[iteration][colour]].find(data_index) == colour_statistics[colour_hash[iteration][colour]].end()) {
+          colour_statistics[colour_hash[iteration][colour]][data_index] = 1;
+        } else {
+          colour_statistics[colour_hash[iteration][colour]][data_index]++;
+        }
       }
       return colour_hash[iteration][colour];
     }
@@ -417,7 +431,6 @@ namespace wlplan {
         throw std::runtime_error("Collect with pruning can only be called at most once");
       }
       collecting = true;
-
 	    collect_impl(data);
 
       std::cout << "[complete]" << std::endl;

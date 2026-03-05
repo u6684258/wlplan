@@ -744,6 +744,10 @@ Methods
                &wlplan::feature_generator::Features::save),
            "filename"_a,
            "weights"_a)
+      .def("load",
+               &wlplan::feature_generator::Features::load,
+           "filename"_a,
+           "quiet"_a)
       .def("set_save_unseen_colours",
            py::overload_cast<const std::string &>(&wlplan::feature_generator::Features::set_save_unseen_colours),
            "filename"_a)
