@@ -74,6 +74,7 @@ namespace wlplan {
 
       // save unseen colours to file in real time
       std::ofstream unseen_colours_filename;
+      std::ofstream seen_colours_filename;
 
       // optional linear weights [saved]
       bool store_weights;
@@ -87,6 +88,7 @@ namespace wlplan {
       bool collecting;
       bool pruned;
       bool save_unseen_colours;
+      bool save_seen_colour_statistics;
       std::vector<int> new_state_data_list;
       std::vector<int> new_state_colour_list;
 
@@ -211,6 +213,7 @@ namespace wlplan {
       void log_iteration(int iteration) const;
       void be_quiet();
       void set_save_unseen_colours(const std::string &filename);
+      void set_save_seen_statistics(const std::string &filename);
 
       // get string representation of WL colours agnostic to the number of collected colours
       std::string get_string_representation(const Embedding &embedding);

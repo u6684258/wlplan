@@ -33,7 +33,8 @@ namespace wlplan {
           iterations(iterations),
           pruning(pruning),
           multiset_hash(multiset_hash),
-          unseen_colours_filename("dummy.txt", std::ios::app)
+          unseen_colours_filename("dummy.txt", std::ios::app),
+          seen_colours_filename("dummy.txt", std::ios::app)
     {
       quiet = false;
       check_valid_configuration();
@@ -104,7 +105,10 @@ namespace wlplan {
 
     Features::Features(const std::string &filename) : Features(filename, false) {}
 
-    Features::Features(const std::string &filename,  const bool quiet) : unseen_colours_filename("dummy.txt", std::ios::app) {
+    Features::Features(const std::string &filename,  const bool quiet) :
+    unseen_colours_filename("dummy.txt", std::ios::app),
+    seen_colours_filename("dummy.txt", std::ios::app)
+    {
       load(filename, quiet);
     }
 
@@ -255,6 +259,8 @@ namespace wlplan {
         } else {
           colour_statistics[colour_hash[iteration][colour]][data_index]++;
         }
+      } else if (!collecting && save_seen_colour_statistics) {
+        seen_colours_filename << colour_hash[iteration][colour] << " : ";
       }
       return colour_hash[iteration][colour];
     }
@@ -607,6 +613,20 @@ namespace wlplan {
         throw std::runtime_error("Could not open unseen colours file: " + filename);
       }
       unseen_colours_filename << "\n";
+    };
+
+    void Features::set_save_seen_statistics(const std::string &filename){
+      save_seen_colour_statistics = true;
+      if (collecting) {
+        throw std::runtime_error("Cannot set save_seen_colour_statistics to true during collection.");
+      }
+      seen_colours_filename.close();
+      seen_colours_filename.open(filename, std::ios::app);
+      if (!seen_colours_filename.is_open()) {
+        throw std::runtime_error("Could not open seen colours file: " + filename);
+      }
+      seen_colours_filename << "\n";
+      std::cout << "Seen colour statistics will be saved to " << filename << std::endl;
     };
 
     std::string Features::get_string_representation(const Embedding &embedding) {

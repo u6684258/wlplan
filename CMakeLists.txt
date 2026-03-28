@@ -9,7 +9,7 @@ include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -pedantic -fPIC -O3 -DNDEBUG -DNOPYTHON -fomit-frame-pointer")
-
+add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 # Gather source files
 # Do NOT glob src/main.cpp because that is only for creating Python bindings
 file(GLOB_RECURSE SRC_FILES "src/**/*.cpp")
