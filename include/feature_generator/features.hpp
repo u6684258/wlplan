@@ -88,7 +88,7 @@ namespace wlplan {
       bool collecting;
       bool pruned;
       bool save_unseen_colours;
-      bool save_seen_colour_statistics;
+      bool save_seen_colour_statistics = false;
       std::vector<int> new_state_data_list;
       std::vector<int> new_state_colour_list;
 
