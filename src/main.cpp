@@ -727,7 +727,7 @@ Methods
       .def("get_multiset_hash", &wlplan::feature_generator::Features::get_multiset_hash)
       .def("get_colour_to_description", &wlplan::feature_generator::Features::get_colour_to_description)
       .def("get_new_state_colour_list", &wlplan::feature_generator::Features::get_new_state_colour_list)
-
+      .def("save_seen_statistics", &wlplan::feature_generator::Features::save_seen_statistics)
       .def("predict",
            py::overload_cast<const wlplan::graph_generator::Graph &>(
                &wlplan::feature_generator::Features::predict),

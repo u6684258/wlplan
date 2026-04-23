@@ -66,15 +66,18 @@ namespace wlplan {
       std::unordered_map<int, int> colour_to_layer;
       std::vector<std::set<int>> layer_to_colours;
 
-      // unseen colouring [optinally saved]
-      VecColourHash colour_hash_unseen;
-      std::unordered_map<int, int> colour_to_layer_unseen;
-      std::unordered_map<int, int> colour_to_count_unseen;
-      std::vector<std::set<int>> layer_to_colours_unseen;
+       // unseen colouring [optinally saved]
+       VecColourHash colour_hash_unseen;
+       std::unordered_map<int, int> colour_to_layer_unseen;
+       std::unordered_map<int, int> colour_to_count_unseen;
+       std::vector<std::set<int>> layer_to_colours_unseen;
 
-      // save unseen colours to file in real time
-      std::ofstream unseen_colours_filename;
-      std::ofstream seen_colours_filename;
+       // seen colour statistics [recorded and written on destruction]
+       std::unordered_map<int, int> colour_to_count_seen;
+
+       // save unseen colours to file in real time
+       std::ofstream unseen_colours_filename;
+       std::ofstream seen_colours_filename;
 
       // optional linear weights [saved]
       bool store_weights;
@@ -137,9 +140,7 @@ namespace wlplan {
 
       Features(const std::string &filename);
 
-      Features(const std::string &filename, const bool quiet);
-
-      virtual ~Features() = default;
+       Features(const std::string &filename, const bool quiet);
 
       /* Feature generation functions */
 
@@ -247,6 +248,7 @@ namespace wlplan {
 
       void set_new_state_data_list(std::vector<int> state_data_list);
       std::vector<int> get_new_state_colour_list() const;
+      void save_seen_statistics();
     };
   }  // namespace feature_generator
 }  // namespace wlplan

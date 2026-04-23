@@ -188,13 +188,13 @@ namespace wlplan {
       // reconstruct layer to colours
       layer_to_colours = get_layer_to_colours();
 
-      // initialise other variables (assume collection already done)
-      collected = false;
-      collecting = false;
-      pruned = false;
-      save_unseen_colours = false;
+       // initialise other variables (assume collection already done)
+       collected = false;
+       collecting = false;
+       pruned = false;
+       save_unseen_colours = false;
 
-      initialise_variables();
+       initialise_variables();
 
       if (!quiet) {
         std::cout << "package_version=" << package_version << std::endl;
@@ -260,7 +260,8 @@ namespace wlplan {
           colour_statistics[colour_hash[iteration][colour]][data_index]++;
         }
       } else if (!collecting && save_seen_colour_statistics) {
-        seen_colours_filename << colour_hash[iteration][colour] << " : ";
+        // Record the colour count to be written on object destruction
+        colour_to_count_seen[colour_hash[iteration][colour]]++;
       }
       return colour_hash[iteration][colour];
     }
@@ -627,6 +628,14 @@ namespace wlplan {
       }
       seen_colours_filename << "\n";
       std::cout << "Seen colour statistics will be saved to " << filename << std::endl;
+
+      // Initialize colour_to_count_seen map with all existing colours set to 0
+      colour_to_count_seen = std::unordered_map<int, int>();
+      for (int itr = 0; itr < iterations + 1; itr++) {
+        for (const auto &[key, colour] : colour_hash[itr]) {
+          colour_to_count_seen[colour] = 0;
+        }
+      }
     };
 
     std::string Features::get_string_representation(const Embedding &embedding) {
@@ -850,5 +859,17 @@ namespace wlplan {
     std::vector<int> Features::get_new_state_colour_list() const { return new_state_colour_list; }
     void Features::set_new_state_data_list(std::vector<int> state_data_list) { new_state_data_list = std::move(state_data_list); }
 
+    void Features::save_seen_statistics() {
+      // Write seen colour statistics to file on object destruction
+      if (save_seen_colour_statistics && seen_colours_filename.is_open()) {
+        for (const auto &[colour, count] : colour_to_count_seen) {
+          seen_colours_filename << colour << " : " << count << std::endl;
+        }
+        seen_colours_filename.close();
+      }
+      else {
+        std::cout << "save_seen_colour_statistics is set to False" << std::endl;
+      }
+    }
   }  // namespace feature_generator
 }  // namespace wlplan
