@@ -51,7 +51,8 @@ namespace wlplan {
       if (multiset_hash) {
         std::map<std::pair<int, int>, int> count_map;
 
-        for (const int &key : colours) {
+        for (size_t i = 0; i < colours.size() - 1; i++) {
+          int key = colours.at(i);
           int edge_label = key % n_relations;
           int node_colour = key / n_relations;
           count_map.try_emplace(std::make_pair(node_colour, edge_label), 0);
@@ -62,7 +63,8 @@ namespace wlplan {
           output.push_back(std::tuple<int, int, int>(key.first, key.second, count));
         }
       } else {
-        for (const int &key : colours) {
+        for (size_t i = 0; i < colours.size() - 1; i++) {
+          int key = colours.at(i);
           int edge_label = key % n_relations;
           int node_colour = key / n_relations;
           int n_occurrences = 1;  // In the set case, each key is unique

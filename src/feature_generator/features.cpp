@@ -273,32 +273,7 @@ namespace wlplan {
       return ret;
     }
 
-    std::map<int, int> Features::remap_colour_hash(std::set<int> &to_prune) {
-
-      //////////////////////////////////////////
-#ifdef DEBUGMODE
-      std::cout << "****************************************************************" << std::endl;
-      for (int itr = 1; itr < iterations + 1; itr++) {
-        for (const auto &[key, val] : colour_hash[itr]) {
-          std::cout << "HASH_ITR " << itr << " HASH ";
-          debug_hash(key, val);
-        }
-      }
-      std::cout << "PRUNE";
-      for (const int i : to_prune) {
-        std::cout << " " << i;
-      }
-      std::cout << std::endl;
-#endif
-      //////////////////////////////////////////
-
-      // remap values
-      std::map<int, int> remap;
-      std::vector<std::vector<std::pair<std::vector<int>, int>>> new_hash_vec(
-          iterations + 1, std::vector<std::pair<std::vector<int>, int>>());
-      std::unordered_map<int, int> new_colour_layer;
-	  std::vector<std::map<int, int>> new_colour_statistics = std::vector<std::map<int, int>>();
-
+    std::set<int> Features::get_related_colours(std::set<int> &to_prune) {
       int modifications = 1;
       int post_pruning_itr = 0;
       while (modifications > 0) {
@@ -327,6 +302,37 @@ namespace wlplan {
         }
         std::cout << "Pruned an additional " << modifications << " features" << std::endl;
       }
+      return to_prune;
+    }
+
+    std::map<int, int> Features::remap_colour_hash(std::set<int> &to_prune) {
+
+      //////////////////////////////////////////
+#ifdef DEBUGMODE
+      std::cout << "****************************************************************" << std::endl;
+      for (int itr = 1; itr < iterations + 1; itr++) {
+        for (const auto &[key, val] : colour_hash[itr]) {
+          std::cout << "HASH_ITR " << itr << " HASH ";
+          debug_hash(key, val);
+        }
+      }
+      std::cout << "PRUNE";
+      for (const int i : to_prune) {
+        std::cout << " " << i;
+      }
+      std::cout << std::endl;
+#endif
+      //////////////////////////////////////////
+
+      // remap values
+      std::map<int, int> remap;
+      std::vector<std::vector<std::pair<std::vector<int>, int>>> new_hash_vec(
+          iterations + 1, std::vector<std::pair<std::vector<int>, int>>());
+      std::unordered_map<int, int> new_colour_layer;
+	  std::vector<std::map<int, int>> new_colour_statistics = std::vector<std::map<int, int>>();
+      std::vector<int> new_new_state_colour_list = std::vector<int>();
+
+      to_prune = get_related_colours(to_prune);
 
       for (int itr = 0; itr < iterations + 1; itr++) {
         for (const auto &[key, val] : colour_hash.at(itr)) {
@@ -340,7 +346,12 @@ namespace wlplan {
           remap[val] = new_val;
           new_hash_vec[itr].push_back(std::make_pair(key, new_val));
           new_colour_layer[new_val] = colour_to_layer[val];
-          new_colour_statistics.push_back(colour_statistics[val]);
+          if (colour_statistics.size() > val) {
+            new_colour_statistics.push_back(colour_statistics[val]);
+          }
+          if (new_state_colour_list.size() > 0 && std::find(new_state_colour_list.begin(), new_state_colour_list.end(), val) != new_state_colour_list.end()) {
+            new_new_state_colour_list.push_back(new_val);
+          }
         }
       }
 
@@ -379,6 +390,7 @@ namespace wlplan {
       // remap hash
       colour_hash = new_hash;
       colour_to_layer = new_colour_layer;
+      new_state_colour_list = new_new_state_colour_list;
       layer_to_colours = new_layer_to_colours();
       for (int itr = 0; itr < iterations + 1; itr++) {
         for (const auto &[key, val] : colour_hash[itr]) {

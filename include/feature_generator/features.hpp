@@ -117,7 +117,6 @@ namespace wlplan {
       // reformat colour hash based on colours to throw out
       VecColourHash new_colour_hash() const;
       std::vector<std::set<int>> new_layer_to_colours() const;
-      std::map<int, int> remap_colour_hash(std::set<int> &to_prune);
 
       // check if configuration is valid
       void check_valid_configuration();
@@ -152,6 +151,10 @@ namespace wlplan {
       void collect(const std::vector<graph_generator::Graph> &graphs);
       // for novelty heuristics
       void layer_redundancy_check();
+
+      // reformat colour hash based on colours to throw out
+      std::map<int, int> remap_colour_hash(std::set<int> &to_prune);
+      std::set<int> get_related_colours(std::set<int> &to_prune);
 
       // embedding assumes training is done, and returns a feature matrix X
       std::vector<Embedding> embed_dataset(const data::DomainDataset &dataset);

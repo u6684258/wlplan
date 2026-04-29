@@ -719,6 +719,8 @@ Methods
       .def("get_iterations", &wlplan::feature_generator::Features::get_iterations)
       .def("get_pruning", &wlplan::feature_generator::Features::get_pruning)
       .def("set_pruning", &wlplan::feature_generator::Features::set_pruning, "pruning"_a)
+      .def("remap_colour_hash", &wlplan::feature_generator::Features::remap_colour_hash, "to_prune"_a)
+      .def("get_related_colours", &wlplan::feature_generator::Features::get_related_colours, "to_prune"_a)
       .def("set_weights", &wlplan::feature_generator::Features::set_weights, "weights"_a)
       .def("set_new_state_data_list", &wlplan::feature_generator::Features::set_new_state_data_list, "state_data_list"_a)
       .def("get_weights", &wlplan::feature_generator::Features::get_weights)
