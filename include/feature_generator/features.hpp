@@ -68,6 +68,7 @@ namespace wlplan {
 
        // unseen colouring [optinally saved]
        VecColourHash colour_hash_unseen;
+      std::map<int, std::vector<int>> hash_to_colour_unseen;
        std::unordered_map<int, int> colour_to_layer_unseen;
        std::unordered_map<int, int> colour_to_count_unseen;
        std::vector<std::set<int>> layer_to_colours_unseen;
@@ -252,6 +253,7 @@ namespace wlplan {
       void set_new_state_data_list(std::vector<int> state_data_list);
       std::vector<int> get_new_state_colour_list() const;
       void save_seen_statistics();
+      void save_unseen_statistics();
     };
   }  // namespace feature_generator
 }  // namespace wlplan

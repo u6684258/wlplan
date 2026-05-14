@@ -230,6 +230,7 @@ namespace wlplan {
           if (!colour_hash_unseen[iteration].count(colour)) {
             int hash = get_n_colours() + get_n_colours_unseen();
             colour_hash_unseen[iteration][colour] = hash;
+            hash_to_colour_unseen[hash] = colour;
             colour_to_layer_unseen[hash] = iteration;
             layer_to_colours_unseen[iteration].insert(hash);
             colour_to_count_unseen[hash] = 0;
@@ -238,9 +239,9 @@ namespace wlplan {
           // Source - https://stackoverflow.com/a/2519011
           // Posted by fbrereto
           // Retrieved 2025-11-26, License - CC BY-SA 2.5
-          std::stringstream result;
-          std::copy(colour.begin(), colour.end(), std::ostream_iterator<int>(result, "."));
-          unseen_colours_filename << iteration << ":" << colour_hash_unseen[iteration][colour] << ":" << result.str() << std::endl;
+          // std::stringstream result;
+          // std::copy(colour.begin(), colour.end(), std::ostream_iterator<int>(result, "."));
+          // unseen_colours_filename << iteration << ":" << colour_hash_unseen[iteration][colour] << ":" << result.str() << std::endl;
         }
         return UNSEEN_COLOUR;
       } else if (collecting) {
@@ -618,6 +619,7 @@ namespace wlplan {
         throw std::runtime_error("Cannot set save_unseen_colours to true during collection.");
       }
       colour_hash_unseen = new_colour_hash();
+      hash_to_colour_unseen = std::map<int, std::vector<int>>();
       layer_to_colours_unseen = new_layer_to_colours();
       colour_to_layer_unseen = std::unordered_map<int, int>();
       unseen_colours_filename.close();
@@ -626,6 +628,7 @@ namespace wlplan {
         throw std::runtime_error("Could not open unseen colours file: " + filename);
       }
       unseen_colours_filename << "\n";
+      std::cout << "Unseen colour statistics will be saved to " << filename << std::endl;
     };
 
     void Features::set_save_seen_statistics(const std::string &filename){
@@ -881,6 +884,25 @@ namespace wlplan {
       }
       else {
         std::cout << "save_seen_colour_statistics is set to False" << std::endl;
+      }
+    }
+    void Features::save_unseen_statistics() {
+      // Write seen colour statistics to file on object destruction
+      if (save_unseen_colours && unseen_colours_filename.is_open()) {
+        for (const auto &[colour, count] : colour_to_count_unseen) {
+          std::string colour_str = "";
+          for (size_t i = 0; i < hash_to_colour_unseen[colour].size(); i++) {
+            colour_str += std::to_string(hash_to_colour_unseen[colour][i]);
+            if (i < hash_to_colour_unseen[colour].size() - 1) {
+              colour_str += ".";
+            }
+          }
+          unseen_colours_filename << colour_str << " : " << colour_to_layer_unseen[colour] << " : " << count << std::endl;
+        }
+        unseen_colours_filename.close();
+      }
+      else {
+        std::cout << "save_unseen_colour_statistics is set to False" << std::endl;
       }
     }
   }  // namespace feature_generator
